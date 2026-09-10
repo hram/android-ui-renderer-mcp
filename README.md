@@ -7,6 +7,41 @@ fixture, and the target device size; the MCP returns a screenshot and the View t
 
 The Android project does not receive a permanent Robolectric dependency or test source.
 
+## Geometry feedback loop
+
+`render_layout` inflates, applies the fixture, measures, lays out, serializes the View tree, and
+draws the PNG from the same View hierarchy. Its result contains `renderId`, `screenshotPath`,
+`viewTree`, and `viewTreePath`.
+
+Use the follow-up tools for exact checks without another render:
+
+```text
+render_layout
+  → inspect_view(renderId, "scan_button")
+  → inspect_view(renderId, "viewfinder")
+  → compare their bounds in pixels
+```
+
+`get_view_tree(renderId)` returns the complete hierarchy. `inspect_view(renderId, viewId)` returns
+one node by Android ID. Nodes include resource name, class, text, state, padding, margins and
+absolute bounds in pixels relative to the rendered root.
+
+Every render also returns timing metadata:
+
+```json
+{
+  "timings": {
+    "fingerprintMs": 35,
+    "gradleMs": 840,
+    "renderMs": 410,
+    "totalMs": 1065
+  }
+}
+```
+
+`gradleMs` is the wall time of the temporary Gradle/Robolectric test task. `renderMs` is the
+inflate-to-PNG/View-tree portion inside that probe; it is included in `gradleMs` and `totalMs`.
+
 ## Connect from Cursor
 
 Build the MCP once:
@@ -61,7 +96,7 @@ attributes and does not invent business data.
 
 Fixture keys are View IDs. The available overrides are text, hint, content description,
 visibility, enabled/selected/checked state, text and background colors, text size, strike-through,
-and an image from a local file, drawable resource, or a solid color.
+and a solid-color image.
 
 ## Reproduce the target device
 
@@ -84,3 +119,7 @@ For the inspected tablet card:
 MCP uses `:app` and `debug` by default. For a project with product flavors, pass the variant in
 the MCP environment, for example `ANDROID_UI_RENDERER_VARIANT=uiDebug`. No file needs to be added
 to the Android project; MCP creates its temporary probe under `.android-ui-renderer/`.
+
+The probe test is intentionally executed for every render so that a fresh PNG and View tree are
+always produced. Gradle still reuses unchanged compilation and resource outputs. Check `timings`
+on the target project before deciding whether a persistent renderer worker is necessary.

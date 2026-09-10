@@ -6,6 +6,41 @@
 
 Проект Android не получает постоянную зависимость Robolectric и дополнительные тестовые исходники.
 
+## Цикл геометрической проверки
+
+`render_layout` выполняет inflate, применяет fixture, измеряет и раскладывает View, сериализует
+дерево и рисует PNG с одного и того же экземпляра View hierarchy. В ответе есть `renderId`,
+`screenshotPath`, `viewTree` и `viewTreePath`.
+
+Для точной проверки без повторного render используйте следующие инструменты:
+
+```text
+render_layout
+  → inspect_view(renderId, "scan_button")
+  → inspect_view(renderId, "viewfinder")
+  → сравнить их границы в пикселях
+```
+
+`get_view_tree(renderId)` возвращает полное дерево. `inspect_view(renderId, viewId)` возвращает
+один View по Android ID. Узел содержит resource name, класс, текст, состояние, padding, margins и
+абсолютные границы в пикселях относительно корня рендера.
+
+Каждый render также возвращает метрики:
+
+```json
+{
+  "timings": {
+    "fingerprintMs": 35,
+    "gradleMs": 840,
+    "renderMs": 410,
+    "totalMs": 1065
+  }
+}
+```
+
+`gradleMs` — полное время временной Gradle/Robolectric test-задачи. `renderMs` — время внутри
+probe от inflate до PNG и View Tree; оно входит и в `gradleMs`, и в `totalMs`.
+
 ## Подключение из Cursor
 
 Один раз соберите MCP:
@@ -57,7 +92,7 @@ cd android-ui-renderer-mcp
 }
 ```
 
-Ключи fixture — ID View. Доступны переопределения текста, hint, content description, видимости, состояний enabled/selected/checked, цвета текста и фона, размера текста, зачёркивания, а также изображения из локального файла, drawable-ресурса или сплошного цвета.
+Ключи fixture — ID View. Доступны переопределения текста, hint, content description, видимости, состояний enabled/selected/checked, цвета текста и фона, размера текста, зачёркивания, а также изображения сплошного цвета.
 
 ## Воспроизведение целевого устройства
 
@@ -76,3 +111,7 @@ cd android-ui-renderer-mcp
 ## Android-варианты
 
 По умолчанию MCP использует `:app` и `debug`. Для проекта с product flavor передайте вариант в окружении MCP, например `ANDROID_UI_RENDERER_VARIANT=uiDebug`. Добавлять файлы в Android-проект не требуется: MCP создаёт временный probe в `.android-ui-renderer/`.
+
+Временный probe-test намеренно запускается при каждом render, поэтому PNG и View Tree всегда
+свежие. При этом Gradle переиспользует неизменившиеся результаты компиляции и обработки ресурсов.
+Перед решением о persistent worker посмотрите `timings` на целевом проекте.
