@@ -96,7 +96,8 @@ attributes and does not invent business data.
 
 Fixture keys are View IDs. The available overrides are text, hint, content description,
 visibility, enabled/selected/checked state, text and background colors, text size, strike-through,
-and a solid-color image.
+and an image from an absolute local path, an app drawable resource, or a solid color. Local images
+must be regular files no larger than 20 MiB; use `@drawable/name` (or `name`) for an app drawable.
 
 ## Reproduce the target device
 

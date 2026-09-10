@@ -1,5 +1,7 @@
 package io.github.androiduirenderer.mcp
 
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.system.measureTimeMillis
 
 data class Freshness(
@@ -107,7 +109,26 @@ object RenderRequestValidator {
             fixture.textSizeSp?.let { if (it !in 1f..500f) throw RendererException("INVALID_REQUEST", "textSizeSp is out of range for $selector") }
             fixture.image?.let { image ->
                 if (image.value.isBlank() || image.value.length > 4_096) throw RendererException("INVALID_REQUEST", "Invalid image value for $selector")
-                if (image.type == FixtureImageType.COLOR) validateColor("image color for $selector", image.value)
+                when (image.type) {
+                    FixtureImageType.COLOR -> validateColor("image color for $selector", image.value)
+                    FixtureImageType.DRAWABLE_RESOURCE -> {
+                        val name = image.value.removePrefix("@drawable/")
+                        if (!name.matches(Regex("[a-z][a-z0-9_]*"))) {
+                            throw RendererException("INVALID_REQUEST", "drawable_resource for $selector must be a drawable name or @drawable/name")
+                        }
+                    }
+                    FixtureImageType.LOCAL_PATH -> {
+                        val imagePath = try { Path.of(image.value) } catch (_: Exception) {
+                            throw RendererException("INVALID_REQUEST", "local_path for $selector is not a valid path")
+                        }
+                        if (!imagePath.isAbsolute || !Files.isRegularFile(imagePath)) {
+                            throw RendererException("INVALID_REQUEST", "local_path for $selector must be an existing absolute file")
+                        }
+                        if (Files.size(imagePath) > 20L * 1024 * 1024) {
+                            throw RendererException("INVALID_REQUEST", "local_path for $selector exceeds the 20 MiB limit")
+                        }
+                    }
+                }
             }
         }
     }

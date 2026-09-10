@@ -105,7 +105,7 @@ private class SidecarWorker(private val config: RendererConfig, private val json
         val density = r.densityDpi ?: 160
         val width = r.widthPx ?: ((r.widthDp ?: 1080) * density / 160f).toInt()
         val height = r.heightPx ?: r.heightDp?.let { (it * density / 160f).toInt() }
-        val sets = r.fixture.entries.joinToString("\n") { (key, f) -> fixtureJava(key.removePrefix("@id/").removePrefix("@+id/"), f) }
+        val sets = r.fixture.entries.joinToString("\n") { (key, f) -> fixtureJava(key.removePrefix("@id/").removePrefix("@+id/"), f, pkg) }
         val heightSpec = height?.let { "View.MeasureSpec.makeMeasureSpec($it, View.MeasureSpec.EXACTLY)" } ?: "View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)"
         return """package $pkg.renderer;
 import android.graphics.*; import android.graphics.drawable.*; import android.content.res.*; import android.util.DisplayMetrics; import android.view.*; import android.widget.*; import android.widget.CompoundButton;
@@ -121,13 +121,22 @@ import org.junit.*; import org.junit.runner.*; import org.robolectric.*; import 
  static String id(View v){if(v.getId()==View.NO_ID)return null;try{return v.getResources().getResourceEntryName(v.getId());}catch(Exception e){return null;}} static String resource(View v){if(v.getId()==View.NO_ID)return null;try{return v.getResources().getResourceName(v.getId());}catch(Exception e){return null;}} static String visibility(View v){return v.getVisibility()==View.VISIBLE?"VISIBLE":v.getVisibility()==View.INVISIBLE?"INVISIBLE":"GONE";} static void field(StringBuilder x,String n,String v){x.append('\"').append(n).append("\":");str(x,v);} static void box(StringBuilder x,int l,int t,int r,int b){x.append("{\"left\":").append(l).append(",\"top\":").append(t).append(",\"right\":").append(r).append(",\"bottom\":").append(b).append('}');} static void margins(StringBuilder x,View v){ViewGroup.LayoutParams p=v.getLayoutParams();if(!(p instanceof ViewGroup.MarginLayoutParams)){x.append("null");return;}ViewGroup.MarginLayoutParams m=(ViewGroup.MarginLayoutParams)p;box(x,m.leftMargin,m.topMargin,m.rightMargin,m.bottomMargin);} static void str(StringBuilder x,String s){if(s==null){x.append("null");return;}x.append('\"');for(int i=0;i<s.length();i++){char c=s.charAt(i);if(c=='\\'||c=='\"')x.append('\\');if(c=='\n')x.append("\\n");else if(c=='\r')x.append("\\r");else if(c=='\t')x.append("\\t");else if(c<32)x.append(String.format("\\u%04x",(int)c));else x.append(c);}x.append('\"');}
 } """
     }
-    private fun fixtureJava(id: String, f: ViewFixture): String {
+    private fun fixtureJava(id: String, f: ViewFixture, pkg: String): String {
         fun q(s: String) = s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
         val x = StringBuilder("try{View x=v(root,\"${q(id)}\");")
         f.text?.let { x.append("if(x instanceof TextView)((TextView)x).setText(\"${q(it)}\");") }; f.hint?.let { x.append("if(x instanceof TextView)((TextView)x).setHint(\"${q(it)}\");") }
         f.contentDescription?.let { x.append("x.setContentDescription(\"${q(it)}\");") }; f.visibility?.let { x.append("vis(x,\"$it\");") }; f.enabled?.let { x.append("x.setEnabled($it);") }; f.selected?.let { x.append("x.setSelected($it);") }; f.checked?.let { x.append("if(x instanceof CompoundButton)((CompoundButton)x).setChecked($it);") }
         f.backgroundColor?.let { x.append("x.setBackgroundColor(Color.parseColor(\"$it\"));") }; f.textColor?.let { x.append("if(x instanceof TextView)((TextView)x).setTextColor(Color.parseColor(\"$it\"));") }; f.textSizeSp?.let { x.append("if(x instanceof TextView)((TextView)x).setTextSize(${it}f);") }; f.strikeThrough?.let { if(it) x.append("if(x instanceof TextView)((TextView)x).setPaintFlags(((TextView)x).getPaintFlags()|16);") }
-        f.image?.let { if(it.type == FixtureImageType.COLOR) x.append("if(x instanceof ImageView)((ImageView)x).setImageDrawable(new ColorDrawable(Color.parseColor(\"${it.value}\"))); ") }
+        f.image?.let {
+            when (it.type) {
+                FixtureImageType.COLOR -> x.append("if(x instanceof ImageView)((ImageView)x).setImageDrawable(new ColorDrawable(Color.parseColor(\"${it.value}\"))); ")
+                FixtureImageType.LOCAL_PATH -> x.append("if(x instanceof ImageView){Bitmap b=BitmapFactory.decodeFile(\"${q(it.value)}\");if(b==null)throw new IllegalArgumentException(\"Cannot decode local fixture image\");((ImageView)x).setImageBitmap(b);}")
+                FixtureImageType.DRAWABLE_RESOURCE -> {
+                    val name = it.value.removePrefix("@drawable/")
+                    x.append("if(x instanceof ImageView)((ImageView)x).setImageResource($pkg.R.drawable.class.getField(\"${q(name)}\").getInt(null));")
+                }
+            }
+        }
         return x.append("}catch(Exception e){throw new RuntimeException(\"fixture @id/$id\",e);}").toString()
     }
     override fun close() {}

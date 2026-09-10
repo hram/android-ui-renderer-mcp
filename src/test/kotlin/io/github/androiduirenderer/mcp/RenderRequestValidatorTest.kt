@@ -1,5 +1,6 @@
 package io.github.androiduirenderer.mcp
 
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
@@ -37,6 +38,31 @@ class RenderRequestValidatorTest {
         RenderRequestValidator.validate(RenderRequest(layout = "screen", widthPx = 722, densityDpi = 212))
         assertFailsWith<RendererException> {
             RenderRequestValidator.validate(RenderRequest(layout = "screen", widthDp = 545, widthPx = 722, densityDpi = 212))
+        }
+    }
+
+    @Test
+    fun `validates local and drawable fixture images`() {
+        val localImage = Files.createTempFile("renderer-fixture", ".png")
+        try {
+            RenderRequestValidator.validate(
+                RenderRequest(layout = "screen", fixture = mapOf(
+                    "image" to ViewFixture(image = FixtureImage(FixtureImageType.LOCAL_PATH, localImage.toString())),
+                    "icon" to ViewFixture(image = FixtureImage(FixtureImageType.DRAWABLE_RESOURCE, "@drawable/ic_arrow_back")),
+                )),
+            )
+            assertFailsWith<RendererException> {
+                RenderRequestValidator.validate(RenderRequest(layout = "screen", fixture = mapOf(
+                    "image" to ViewFixture(image = FixtureImage(FixtureImageType.LOCAL_PATH, "relative.png")),
+                )))
+            }
+            assertFailsWith<RendererException> {
+                RenderRequestValidator.validate(RenderRequest(layout = "screen", fixture = mapOf(
+                    "image" to ViewFixture(image = FixtureImage(FixtureImageType.DRAWABLE_RESOURCE, "@drawable/../secret")),
+                )))
+            }
+        } finally {
+            Files.deleteIfExists(localImage)
         }
     }
 }
