@@ -8,6 +8,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -85,11 +86,18 @@ class StdioMcpServer(
             put("sourceFingerprint", freshness.fingerprint.value)
             put("screenshotPath", session.screenshotPath)
             put("viewTreePath", session.viewTreePath)
+            put("viewTree", json.encodeToJsonElement(ViewNode.serializer(), session.tree))
             putJsonArray("changes") { freshness.fingerprint.categories.forEach { add(JsonPrimitive(it)) } }
             putJsonObject("build") {
                 put("performed", freshness.build.performed); put("incremental", freshness.build.incremental); put("durationMs", freshness.build.durationMs)
             }
             putJsonObject("worker") { put("restarted", freshness.workerRestarted); put("generation", freshness.generation) }
+            putJsonObject("timings") {
+                put("fingerprintMs", freshness.timings.fingerprintMs)
+                put("gradleMs", freshness.timings.gradleMs)
+                put("renderMs", freshness.timings.renderMs)
+                put("totalMs", freshness.timings.totalMs)
+            }
         }
         return textResult(json.encodeToString(JsonObject.serializer(), result))
     }

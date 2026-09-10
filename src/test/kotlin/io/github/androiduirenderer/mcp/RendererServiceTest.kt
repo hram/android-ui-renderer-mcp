@@ -19,7 +19,7 @@ class RendererServiceTest {
 read ignored
 echo '{"type":"ready"}'
 read ignored
-echo '{"type":"rendered","result":{"widthPx":100,"heightPx":50,"screenshotPath":"/tmp/screen.png","viewTree":{"id":"root","className":"android.view.View","bounds":{"left":0,"top":0,"right":100,"bottom":50},"children":[{"id":"button","className":"android.widget.Button","text":"OK","bounds":{"left":10,"top":10,"right":90,"bottom":40}}]}}}'
+echo '{"type":"rendered","result":{"widthPx":100,"heightPx":50,"screenshotPath":"/tmp/screen.png","viewTree":{"id":"root","className":"android.view.View","bounds":{"left":0,"top":0,"right":100,"bottom":50},"children":[{"id":"button","className":"android.widget.Button","text":"OK","bounds":{"left":10,"top":10,"right":90,"bottom":40}}]},"timings":{"gradleMs":12,"probeRenderMs":7}}}'
 read ignored
 echo '{"type":"rendered","result":{"widthPx":100,"heightPx":50,"screenshotPath":"/tmp/screen.png","viewTree":{"id":"root","className":"android.view.View","bounds":{"left":0,"top":0,"right":100,"bottom":50}}}}'
 """)
@@ -39,6 +39,9 @@ renderer:
             val (first, firstFreshness) = service.render(RenderRequest(layout = "screen_main"))
             assertTrue(firstFreshness.build.performed)
             assertTrue(firstFreshness.workerRestarted)
+            assertTrue(firstFreshness.timings.gradleMs >= 12)
+            assertEquals(7, firstFreshness.timings.renderMs)
+            assertTrue(firstFreshness.timings.totalMs >= firstFreshness.timings.renderMs)
             assertEquals("button", service.inspect(first.id, "@id/button").id)
 
             val (_, secondFreshness) = service.render(RenderRequest(layout = "screen_main"))

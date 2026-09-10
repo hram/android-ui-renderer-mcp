@@ -24,6 +24,7 @@ data class ViewNode(
     val enabled: Boolean = true,
     val clickable: Boolean = false,
     val selected: Boolean = false,
+    val checked: Boolean? = null,
     val text: String? = null,
     val contentDescription: String? = null,
     val bounds: Bounds,
@@ -91,12 +92,21 @@ enum class FixtureImageType {
 }
 
 @Serializable
+data class WorkerTimings(
+    /** Wall time spent executing the Gradle test task that hosts the sidecar probe. */
+    val gradleMs: Long = 0,
+    /** Time inside the probe from entering the test to writing the PNG and View Tree. */
+    val probeRenderMs: Long = 0,
+)
+
+@Serializable
 data class WorkerRenderResult(
     val widthPx: Int,
     val heightPx: Int,
     val screenshotPath: String,
     val viewTree: ViewNode,
     val warnings: List<String> = emptyList(),
+    val timings: WorkerTimings = WorkerTimings(),
 )
 
 data class RenderSession(

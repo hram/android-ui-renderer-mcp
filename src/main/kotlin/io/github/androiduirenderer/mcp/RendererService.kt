@@ -1,10 +1,20 @@
 package io.github.androiduirenderer.mcp
 
+import kotlin.system.measureTimeMillis
+
 data class Freshness(
     val generation: Long,
     val fingerprint: SourceFingerprint,
     val build: BuildResult,
     val workerRestarted: Boolean,
+    val timings: RenderTimings,
+)
+
+data class RenderTimings(
+    val fingerprintMs: Long,
+    val gradleMs: Long,
+    val renderMs: Long,
+    val totalMs: Long,
 )
 
 class RendererService(private val config: RendererConfig, private val json: kotlinx.serialization.json.Json) : AutoCloseable {
@@ -17,17 +27,38 @@ class RendererService(private val config: RendererConfig, private val json: kotl
 
     @Synchronized
     fun render(request: RenderRequest): Pair<RenderSession, Freshness> {
-        RenderRequestValidator.validate(request)
-        val current = fingerprinter.calculate()
-        val changed = current.value != fingerprint?.value
-        val buildResult = if (changed) {
-            generation += 1
-            build.ensureFresh()
-        } else BuildResult(performed = false)
-        val restarted = worker.ensure(generation)
-        val result = worker.render(request)
-        fingerprint = current
-        return sessions.create(generation, result) to Freshness(generation, current, buildResult, restarted)
+        var session: RenderSession? = null
+        var freshness: Freshness? = null
+        val totalMs = measureTimeMillis {
+            RenderRequestValidator.validate(request)
+            lateinit var current: SourceFingerprint
+            val fingerprintMs = measureTimeMillis { current = fingerprinter.calculate() }
+            val changed = current.value != fingerprint?.value
+            val buildResult = if (changed) {
+                generation += 1
+                build.ensureFresh()
+            } else BuildResult(performed = false)
+            val restarted = worker.ensure(generation)
+            val result = worker.render(request)
+            fingerprint = current
+            session = sessions.create(generation, result)
+            freshness = Freshness(
+                generation,
+                current,
+                buildResult,
+                restarted,
+                RenderTimings(
+                    fingerprintMs = fingerprintMs,
+                    gradleMs = buildResult.durationMs + result.timings.gradleMs,
+                    renderMs = result.timings.probeRenderMs,
+                    totalMs = 0,
+                ),
+            )
+        }
+        val computed = freshness ?: error("render did not produce freshness")
+        return (session ?: error("render did not produce session")) to computed.copy(
+            timings = computed.timings.copy(totalMs = totalMs),
+        )
     }
 
     fun tree(renderId: String): ViewNode = sessions.get(renderId).tree

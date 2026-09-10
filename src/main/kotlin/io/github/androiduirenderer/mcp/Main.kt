@@ -13,7 +13,7 @@ fun main(args: Array<String>) {
         return
     }
     val projectRoot = Path.of(System.getenv("PROJECT_PATH") ?: System.getProperty("user.dir")).toAbsolutePath().normalize()
-    val json = Json { ignoreUnknownKeys = true; explicitNulls = false }
+    val json = Json { ignoreUnknownKeys = true; explicitNulls = false; encodeDefaults = true }
     try {
         val config = ConfigLoader.load(projectRoot)
         RendererService(config, json).use { service ->
