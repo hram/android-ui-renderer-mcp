@@ -1,6 +1,6 @@
 # Android UI Renderer MCP
 
-Локальный MCP-сервер для AI-агентов, разрабатывающих Android-интерфейсы на XML. Агент передаёт layout, тестовые данные и размеры целевого устройства, а сервер возвращает PNG-скриншот и дерево View. Проект Android при этом не требует постоянной зависимости Robolectric или добавления тестовых исходников.
+[Русская версия](README.ru.md)
 
 Local MCP for an agent developing Android XML interfaces. The agent passes a layout, a visual
 fixture, and the target device size; the MCP returns a screenshot and the View tree.
