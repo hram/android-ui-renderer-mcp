@@ -77,8 +77,8 @@ For the inspected tablet card:
 }
 ```
 
-## Current local setup
+## Android variants
 
-The initial server still expects a local renderer-worker command through
-`.android-ui-renderer.yaml`. This is an implementation detail being replaced with an integrated
-temporary sidecar, so that the Cursor configuration above will be the only project setup.
+MCP uses `:app` and `debug` by default. For a project with product flavors, pass the variant in
+the MCP environment, for example `ANDROID_UI_RENDERER_VARIANT=uiDebug`. No file needs to be added
+to the Android project; MCP creates its temporary probe under `.android-ui-renderer/`.

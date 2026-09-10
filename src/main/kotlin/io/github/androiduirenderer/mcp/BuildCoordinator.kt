@@ -9,6 +9,9 @@ data class BuildResult(val performed: Boolean, val durationMs: Long = 0, val inc
 
 class BuildCoordinator(private val config: RendererConfig) {
     fun ensureFresh(): BuildResult {
+        // The integrated sidecar's test task is itself the incremental build. Running it here
+        // first would duplicate the slowest operation on every changed generation.
+        if (config.workerCommand == null) return BuildResult(performed = false)
         val gradlew = config.projectRoot.resolve(if (System.getProperty("os.name").startsWith("Windows")) "gradlew.bat" else "gradlew")
         if (!gradlew.exists()) throw RendererException("PROJECT_NOT_FOUND", "Gradle wrapper not found at $gradlew")
         val command = listOf(gradlew.toAbsolutePath().toString()) + config.allowedTasks + "--console=plain"

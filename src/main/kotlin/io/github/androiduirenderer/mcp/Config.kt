@@ -9,8 +9,8 @@ data class RendererConfig(
     val module: String,
     val variant: String,
     val allowedTasks: List<String>,
-    val workerCommand: String,
-    val workerArgs: List<String>,
+    val workerCommand: String? = null,
+    val workerArgs: List<String> = emptyList(),
     val outputDir: Path,
     val sessionTtlMinutes: Long,
     val maxSessions: Int,
@@ -21,7 +21,7 @@ object ConfigLoader {
     fun load(projectRoot: Path): RendererConfig {
         val file = projectRoot.resolve(".android-ui-renderer.yaml")
         if (!file.exists()) {
-            throw RendererException("CONFIG_NOT_FOUND", "Missing ${file.fileName} in $projectRoot")
+            return automatic(projectRoot)
         }
         val values = linkedMapOf<String, String>()
         val lists = linkedMapOf<String, MutableList<String>>()
@@ -69,11 +69,26 @@ object ConfigLoader {
             module = module,
             variant = variant,
             allowedTasks = tasks,
-            workerCommand = required("worker.command"),
+            workerCommand = values["worker.command"]?.takeIf { it.isNotBlank() },
             workerArgs = lists["worker.args"]?.toList().orEmpty(),
             outputDir = projectRoot.resolve(output).normalize(),
             sessionTtlMinutes = values["renderer.sessionTtlMinutes"]?.toLongOrNull() ?: 30,
             maxSessions = values["renderer.maxSessions"]?.toIntOrNull() ?: 20,
+        )
+    }
+
+    private fun automatic(projectRoot: Path): RendererConfig {
+        val module = System.getenv("ANDROID_UI_RENDERER_MODULE")?.takeIf { it.isNotBlank() } ?: ":app"
+        val variant = System.getenv("ANDROID_UI_RENDERER_VARIANT")?.takeIf { it.isNotBlank() } ?: "debug"
+        val taskVariant = variant.replaceFirstChar { it.uppercase() }
+        return RendererConfig(
+            projectRoot = projectRoot,
+            module = module,
+            variant = variant,
+            allowedTasks = listOf("${module}:test${taskVariant}UnitTest"),
+            outputDir = projectRoot.resolve(".android-ui-renderer"),
+            sessionTtlMinutes = 30,
+            maxSessions = 20,
         )
     }
 
