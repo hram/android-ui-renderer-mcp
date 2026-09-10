@@ -42,6 +42,21 @@ class RenderRequestValidatorTest {
     }
 
     @Test
+    fun `validates inflation configuration`() {
+        RenderRequestValidator.validate(RenderRequest(
+            layout = "screen",
+            theme = "@style/AppTheme",
+            locale = "ru-RU",
+            nightMode = true,
+            orientation = "landscape",
+            fontScale = 1.3f,
+        ))
+        assertFailsWith<RendererException> { RenderRequestValidator.validate(RenderRequest(layout = "screen", theme = "@style/../secret")) }
+        assertFailsWith<RendererException> { RenderRequestValidator.validate(RenderRequest(layout = "screen", orientation = "diagonal")) }
+        assertFailsWith<RendererException> { RenderRequestValidator.validate(RenderRequest(layout = "screen", fontScale = 4f)) }
+    }
+
+    @Test
     fun `validates local and drawable fixture images`() {
         val localImage = Files.createTempFile("renderer-fixture", ".png")
         try {

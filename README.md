@@ -42,6 +42,30 @@ Every render also returns timing metadata:
 `gradleMs` is the wall time of the temporary Gradle/Robolectric test task. `renderMs` is the
 inflate-to-PNG/View-tree portion inside that probe; it is included in `gradleMs` and `totalMs`.
 
+## Production inflation context
+
+The sidecar inflates from a themed Android `Activity`, not the application context. Before the
+Activity lifecycle and inflation it applies the requested resource configuration:
+
+- `theme`: an app style name or `@style/name`; omitted means the application manifest theme;
+- `nightMode`: selects night or not-night resources;
+- `fontScale`: `0.5` through `3.0`;
+- `locale`: a BCP 47 tag such as `ru-RU`;
+- `orientation`: `portrait` or `landscape`, including layout/resource qualifiers.
+
+For example:
+
+```json
+{
+  "layout": "screen_scanner",
+  "theme": "@style/AppTheme",
+  "nightMode": true,
+  "fontScale": 1.3,
+  "locale": "ru-RU",
+  "orientation": "landscape"
+}
+```
+
 ## Connect from Cursor
 
 Build the MCP once:

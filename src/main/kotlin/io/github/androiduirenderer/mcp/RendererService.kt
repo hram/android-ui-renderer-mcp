@@ -89,6 +89,17 @@ object RenderRequestValidator {
         if (request.widthDp != null && request.widthPx != null) throw RendererException("INVALID_REQUEST", "Specify only one of widthDp or widthPx")
         if (request.heightDp != null && request.heightPx != null) throw RendererException("INVALID_REQUEST", "Specify only one of heightDp or heightPx")
         if (request.densityDpi != null && request.densityDpi !in 72..960) throw RendererException("INVALID_REQUEST", "densityDpi is out of range")
+        request.theme?.let { theme ->
+            val name = theme.removePrefix("@style/")
+            if (!name.matches(Regex("[A-Za-z][A-Za-z0-9_]*"))) throw RendererException("INVALID_REQUEST", "theme must be a style name or @style/name")
+        }
+        request.orientation?.let { orientation ->
+            if (orientation !in setOf("portrait", "landscape")) throw RendererException("INVALID_REQUEST", "orientation must be portrait or landscape")
+        }
+        request.locale?.let { locale ->
+            if (!locale.matches(Regex("[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*"))) throw RendererException("INVALID_REQUEST", "locale must be a BCP 47 language tag")
+        }
+        request.fontScale?.let { if (it !in 0.5f..3f) throw RendererException("INVALID_REQUEST", "fontScale is out of range") }
         if (request.fixture.size > 500) throw RendererException("INVALID_REQUEST", "fixture may contain at most 500 View overrides")
         request.background?.let { validateColor("background", it) }
         request.fixture.forEach { (selector, fixture) ->

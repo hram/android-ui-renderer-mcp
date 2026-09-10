@@ -41,6 +41,30 @@ render_layout
 `gradleMs` — полное время временной Gradle/Robolectric test-задачи. `renderMs` — время внутри
 probe от inflate до PNG и View Tree; оно входит и в `gradleMs`, и в `totalMs`.
 
+## Production-контекст inflation
+
+Sidecar надувает layout из themed Android `Activity`, а не из application context. До lifecycle
+Activity и inflation он применяет запрошенную resource configuration:
+
+- `theme`: имя стиля приложения или `@style/name`; по умолчанию используется тема из manifest;
+- `nightMode`: выбирает night или not-night ресурсы;
+- `fontScale`: от `0.5` до `3.0`;
+- `locale`: BCP 47-тег, например `ru-RU`;
+- `orientation`: `portrait` или `landscape`, включая layout/resource qualifiers.
+
+Пример:
+
+```json
+{
+  "layout": "screen_scanner",
+  "theme": "@style/AppTheme",
+  "nightMode": true,
+  "fontScale": 1.3,
+  "locale": "ru-RU",
+  "orientation": "landscape"
+}
+```
+
 ## Подключение из Cursor
 
 Один раз соберите MCP:

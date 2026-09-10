@@ -107,13 +107,26 @@ private class SidecarWorker(private val config: RendererConfig, private val json
         val height = r.heightPx ?: r.heightDp?.let { (it * density / 160f).toInt() }
         val sets = r.fixture.entries.joinToString("\n") { (key, f) -> fixtureJava(key.removePrefix("@id/").removePrefix("@+id/"), f, pkg) }
         val heightSpec = height?.let { "View.MeasureSpec.makeMeasureSpec($it, View.MeasureSpec.EXACTLY)" } ?: "View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)"
+        val configuration = buildString {
+            r.locale?.let { append("c.setLocale(Locale.forLanguageTag(\"$it\"));") }
+            r.nightMode?.let { append("c.uiMode=(c.uiMode&~Configuration.UI_MODE_NIGHT_MASK)|${if (it) "Configuration.UI_MODE_NIGHT_YES" else "Configuration.UI_MODE_NIGHT_NO"};") }
+            r.orientation?.let { append("c.orientation=${if (it == "landscape") "Configuration.ORIENTATION_LANDSCAPE" else "Configuration.ORIENTATION_PORTRAIT"};") }
+            r.fontScale?.let { append("c.fontScale=${it}f;") }
+        }
+        val scaledDensity = density / 160f * (r.fontScale ?: 1f)
+        val theme = r.theme?.removePrefix("@style/")
+        val themeSetup = if (theme == null) {
+            "if(app.getApplicationInfo().theme!=0)activity.setTheme(app.getApplicationInfo().theme);"
+        } else {
+            "activity.setTheme($pkg.R.style.class.getField(\"${theme.replace("\\", "\\\\").replace("\"", "\\\"")}\").getInt(null));"
+        }
         return """package $pkg.renderer;
-import android.graphics.*; import android.graphics.drawable.*; import android.content.res.*; import android.util.DisplayMetrics; import android.view.*; import android.widget.*; import android.widget.CompoundButton;
-import org.junit.*; import org.junit.runner.*; import org.robolectric.*; import org.robolectric.annotation.*; import java.io.*;
+import android.app.*; import android.graphics.*; import android.graphics.drawable.*; import android.content.res.*; import android.util.DisplayMetrics; import android.view.*; import android.widget.*; import android.widget.CompoundButton;
+import org.junit.*; import org.junit.runner.*; import org.robolectric.*; import org.robolectric.annotation.*; import org.robolectric.android.controller.*; import java.io.*; import java.util.*;
 @RunWith(RobolectricTestRunner.class) @Config(sdk=34) @GraphicsMode(GraphicsMode.Mode.NATIVE) public class AndroidUiRendererProbe {
- @Test public void render() throws Exception { long renderStart=System.nanoTime(); Resources rs=RuntimeEnvironment.getApplication().getResources(); DisplayMetrics dm=new DisplayMetrics(); dm.setTo(rs.getDisplayMetrics()); dm.densityDpi=$density; dm.density=$density/160f; dm.scaledDensity=dm.density; Configuration c=new Configuration(rs.getConfiguration()); c.densityDpi=$density; rs.updateConfiguration(c,dm);
- View root=LayoutInflater.from(RuntimeEnvironment.getApplication()).inflate($pkg.R.layout.${r.layout},null,false); $sets
- root.measure(View.MeasureSpec.makeMeasureSpec($width,View.MeasureSpec.EXACTLY),$heightSpec); root.layout(0,0,$width,root.getMeasuredHeight()); writeTree(root,new File(System.getenv("AUR_TREE"))); Bitmap b=Bitmap.createBitmap($width,root.getMeasuredHeight(),Bitmap.Config.ARGB_8888); Canvas canvas=new Canvas(b); canvas.drawColor(Color.parseColor("${r.background ?: "#FFFFFF"}")); root.draw(canvas); File out=new File(System.getenv("AUR_OUTPUT")); out.getParentFile().mkdirs(); try(FileOutputStream s=new FileOutputStream(out)){b.compress(Bitmap.CompressFormat.PNG,100,s);} writeTimings(new File(System.getenv("AUR_TIMINGS")),(System.nanoTime()-renderStart)/1000000L); }
+ @Test public void render() throws Exception { long renderStart=System.nanoTime(); Application app=RuntimeEnvironment.getApplication(); Resources rs=app.getResources(); DisplayMetrics dm=new DisplayMetrics(); dm.setTo(rs.getDisplayMetrics()); dm.densityDpi=$density; dm.density=$density/160f; dm.scaledDensity=${scaledDensity}f; Configuration c=new Configuration(rs.getConfiguration()); c.densityDpi=$density; $configuration rs.updateConfiguration(c,dm); ActivityController<Activity> controller=Robolectric.buildActivity(Activity.class); Activity activity=controller.get(); $themeSetup controller.setup();
+ View root=LayoutInflater.from(activity).inflate($pkg.R.layout.${r.layout},null,false); $sets
+ root.measure(View.MeasureSpec.makeMeasureSpec($width,View.MeasureSpec.EXACTLY),$heightSpec); root.layout(0,0,$width,root.getMeasuredHeight()); writeTree(root,new File(System.getenv("AUR_TREE"))); Bitmap b=Bitmap.createBitmap($width,root.getMeasuredHeight(),Bitmap.Config.ARGB_8888); Canvas canvas=new Canvas(b); canvas.drawColor(Color.parseColor("${r.background ?: "#FFFFFF"}")); root.draw(canvas); File out=new File(System.getenv("AUR_OUTPUT")); out.getParentFile().mkdirs(); try(FileOutputStream s=new FileOutputStream(out)){b.compress(Bitmap.CompressFormat.PNG,100,s);} writeTimings(new File(System.getenv("AUR_TIMINGS")),(System.nanoTime()-renderStart)/1000000L); controller.pause().stop().destroy(); }
  static View v(View r,String n)throws Exception{return r.findViewById($pkg.R.id.class.getField(n).getInt(null));} static void vis(View v,String x){v.setVisibility(x.equals("gone")?8:x.equals("invisible")?4:0);}
  static void writeTimings(File out,long renderMs)throws Exception{out.getParentFile().mkdirs();try(FileOutputStream s=new FileOutputStream(out)){s.write(("{\"renderMs\":"+renderMs+"}").getBytes("UTF-8"));}}
  static void writeTree(View root,File out)throws Exception{out.getParentFile().mkdirs();try(FileOutputStream s=new FileOutputStream(out)){s.write(node(root,0,0).getBytes("UTF-8"));}}

@@ -110,9 +110,9 @@ class StdioMcpServer(
                 putJsonObject("heightDp") { put("type", "integer"); put("description", "Measured root height in dp; mutually exclusive with heightPx") }
                 putJsonObject("widthPx") { put("type", "integer"); put("description", "Exact measured root width in physical pixels; mutually exclusive with widthDp") }
                 putJsonObject("heightPx") { put("type", "integer"); put("description", "Exact measured root height in physical pixels; mutually exclusive with heightDp") }
-                putJsonObject("densityDpi") { put("type", "integer"); put("description", "Device density used for Android dp/sp resource resolution") }; putJsonObject("orientation") { put("type", "string") }
-                putJsonObject("theme") { put("type", "string") }; putJsonObject("locale") { put("type", "string") }
-                putJsonObject("nightMode") { put("type", "boolean") }; putJsonObject("fontScale") { put("type", "number") }
+                putJsonObject("densityDpi") { put("type", "integer"); put("description", "Device density used for Android dp/sp resource resolution") }; putJsonObject("orientation") { put("type", "string"); put("description", "Resource orientation qualifier"); putJsonArray("enum") { add(JsonPrimitive("portrait")); add(JsonPrimitive("landscape")) } }
+                putJsonObject("theme") { put("type", "string"); put("description", "App style name or @style/name, applied to the Activity before inflation") }; putJsonObject("locale") { put("type", "string"); put("description", "BCP 47 locale, for example ru-RU") }
+                putJsonObject("nightMode") { put("type", "boolean"); put("description", "Select the night or not-night resource configuration before inflation") }; putJsonObject("fontScale") { put("type", "number"); put("description", "Font scale from 0.5 to 3.0, applied before inflation") }
                 putJsonObject("background") { put("type", "string"); put("description", "Opaque canvas color in #RRGGBB or #AARRGGBB; defaults to #FFFFFF") }
                 put("fixture", fixtureSchema())
             }; putJsonArray("required") { add(JsonPrimitive("layout")) }
