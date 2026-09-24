@@ -63,21 +63,25 @@ class StdioMcpServer(
         val args = params["arguments"]?.jsonObject ?: buildJsonObject {}
         return when (name) {
             "render_layout" -> render(args)
+            "render_target" -> render(args, target(args))
             "get_view_tree" -> textResult(json.encodeToString(ViewNode.serializer(), service.tree(requiredString(args, "renderId"))))
             "inspect_view" -> textResult(json.encodeToString(ViewNode.serializer(), service.inspect(requiredString(args, "renderId"), requiredString(args, "viewId"))))
             else -> throw RendererException("TOOL_NOT_FOUND", "Unknown tool: $name")
         }
     }
 
-    private fun render(args: JsonObject): JsonObject {
+    private fun render(args: JsonObject, target: RenderTarget? = null): JsonObject {
         val request = RenderRequest(
-            layout = requiredString(args, "layout"),
+            layout = target?.fragmentLayout ?: requiredString(args, "layout"),
             widthDp = args.int("widthDp"), heightDp = args.int("heightDp"),
             widthPx = args.int("widthPx"), heightPx = args.int("heightPx"), densityDpi = args.int("densityDpi"),
             orientation = args.string("orientation"), theme = args.string("theme"), locale = args.string("locale"),
             nightMode = args.bool("nightMode"), fontScale = args.float("fontScale"),
             background = args.string("background") ?: "#FFFFFF",
             fixture = fixture(args),
+            recyclerViews = recyclerViews(args),
+            target = target,
+            overlays = overlays(args),
         )
         val (session, freshness) = service.render(request)
         val result = buildJsonObject {
@@ -85,6 +89,8 @@ class StdioMcpServer(
             put("generation", freshness.generation)
             put("sourceFingerprint", freshness.fingerprint.value)
             put("screenshotPath", session.screenshotPath)
+            session.requestPath?.let { put("requestPath", it) }
+            session.replayPath?.let { put("replayPath", it) }
             put("viewTreePath", session.viewTreePath)
             put("viewTree", json.encodeToJsonElement(ViewNode.serializer(), session.tree))
             putJsonArray("changes") { freshness.fingerprint.categories.forEach { add(JsonPrimitive(it)) } }
@@ -115,7 +121,25 @@ class StdioMcpServer(
                 putJsonObject("nightMode") { put("type", "boolean"); put("description", "Select the night or not-night resource configuration before inflation") }; putJsonObject("fontScale") { put("type", "number"); put("description", "Font scale from 0.5 to 3.0, applied before inflation") }
                 putJsonObject("background") { put("type", "string"); put("description", "Opaque canvas color in #RRGGBB or #AARRGGBB; defaults to #FFFFFF") }
                 put("fixture", fixtureSchema())
+                put("recyclerViews", recyclerViewsSchema())
+                put("overlays", overlaysSchema())
             }; putJsonArray("required") { add(JsonPrimitive("layout")) }
+        }))
+        add(tool("render_target", "Render a composed target. activity_fragment inflates the activity layout and inserts a fragment layout into its ViewGroup container; it does not execute Fragment code, DI, navigation, or network calls.", buildJsonObject {
+            put("type", "object"); putJsonObject("properties") {
+                put("target", targetSchema())
+                putJsonObject("widthDp") { put("type", "integer"); put("description", "Measured root width in dp; mutually exclusive with widthPx") }
+                putJsonObject("heightDp") { put("type", "integer"); put("description", "Measured root height in dp; mutually exclusive with heightPx") }
+                putJsonObject("widthPx") { put("type", "integer"); put("description", "Exact measured root width in physical pixels; mutually exclusive with widthDp") }
+                putJsonObject("heightPx") { put("type", "integer"); put("description", "Exact measured root height in physical pixels; mutually exclusive with heightDp") }
+                putJsonObject("densityDpi") { put("type", "integer") }
+                putJsonObject("orientation") { put("type", "string"); putJsonArray("enum") { add(JsonPrimitive("portrait")); add(JsonPrimitive("landscape")) } }
+                putJsonObject("theme") { put("type", "string") }; putJsonObject("locale") { put("type", "string") }
+                putJsonObject("nightMode") { put("type", "boolean") }; putJsonObject("fontScale") { put("type", "number") }
+                putJsonObject("background") { put("type", "string") }
+                put("fixture", fixtureSchema()); put("recyclerViews", recyclerViewsSchema())
+                put("overlays", overlaysSchema())
+            }; putJsonArray("required") { add(JsonPrimitive("target")) }
         }))
         add(tool("get_view_tree", "Return the machine-readable View hierarchy for a prior render.", idSchema("renderId")))
         add(tool("inspect_view", "Return bounds, visibility, text, padding and margins for one View.", buildJsonObject {
@@ -134,6 +158,30 @@ class StdioMcpServer(
         }
     }
 
+    private fun recyclerViews(args: JsonObject): Map<String, RecyclerViewFixture> {
+        val value = args["recyclerViews"] ?: return emptyMap()
+        return try {
+            json.decodeFromJsonElement(MapSerializer(String.serializer(), RecyclerViewFixture.serializer()), value)
+        } catch (error: Exception) {
+            throw RendererException("INVALID_REQUEST", "recyclerViews must map RecyclerView ids to itemLayout, orientation and row fixtures: ${error.message}")
+        }
+    }
+
+    private fun target(args: JsonObject): RenderTarget {
+        val value = args["target"] ?: throw RendererException("INVALID_REQUEST", "target is required")
+        return try {
+            json.decodeFromJsonElement(RenderTarget.serializer(), value)
+        } catch (error: Exception) {
+            throw RendererException("INVALID_REQUEST", "target must describe a supported render target: ${error.message}")
+        }
+    }
+
+    private fun overlays(args: JsonObject): List<OverlayFixture> {
+        val value = args["overlays"] ?: return emptyList()
+        return try { json.decodeFromJsonElement(kotlinx.serialization.builtins.ListSerializer(OverlayFixture.serializer()), value) }
+        catch (error: Exception) { throw RendererException("INVALID_REQUEST", "overlays must be an array of layout and fixture objects: ${error.message}") }
+    }
+
     private fun fixtureSchema() = buildJsonObject {
         put("type", "object")
         put("description", "Map of @id/name (or name) to explicit View properties. Values not supplied retain their inflated XML state.")
@@ -148,6 +196,7 @@ class StdioMcpServer(
                 putJsonObject("selected") { put("type", "boolean") }
                 putJsonObject("checked") { put("type", "boolean") }
                 putJsonObject("backgroundColor") { put("type", "string") }
+                putJsonObject("backgroundDrawable") { put("type", "string"); put("description", "App drawable name or @drawable/name") }
                 putJsonObject("textColor") { put("type", "string") }
                 putJsonObject("textSizeSp") { put("type", "number") }
                 putJsonObject("strikeThrough") { put("type", "boolean") }
@@ -161,6 +210,41 @@ class StdioMcpServer(
                 }
             }
         }
+    }
+
+    private fun recyclerViewsSchema() = buildJsonObject {
+        put("type", "object")
+        put("description", "Map of RecyclerView ids to deterministic temporary adapters. Each item is a local fixture map for one inflated row.")
+        putJsonObject("additionalProperties") {
+            put("type", "object")
+            putJsonObject("properties") {
+                putJsonObject("itemLayout") { put("type", "string"); put("description", "Item layout resource name without @layout/") }
+                putJsonObject("orientation") { put("type", "string"); putJsonArray("enum") { add(JsonPrimitive("vertical")); add(JsonPrimitive("horizontal")) } }
+                putJsonObject("items") {
+                    put("type", "array")
+                    put("description", "One local View-id-to-fixture map per adapter row")
+                    putJsonObject("items") { put("type", "object"); put("additionalProperties", fixtureSchema()["additionalProperties"]!!) }
+                }
+            }
+            putJsonArray("required") { add(JsonPrimitive("itemLayout")) }
+        }
+    }
+
+    private fun targetSchema() = buildJsonObject {
+        put("type", "object")
+        put("description", "Composable target. Only activity_fragment is currently supported.")
+        putJsonObject("properties") {
+            putJsonObject("kind") { put("type", "string"); putJsonArray("enum") { add(JsonPrimitive("activity_fragment")) } }
+            putJsonObject("activityLayout") { put("type", "string"); put("description", "Activity host layout resource name without @layout/") }
+            putJsonObject("containerId") { put("type", "string"); put("description", "ViewGroup id in activityLayout that receives the fragment layout") }
+            putJsonObject("fragmentLayout") { put("type", "string"); put("description", "Fragment layout resource name without @layout/") }
+        }
+        putJsonArray("required") { add(JsonPrimitive("kind")); add(JsonPrimitive("activityLayout")); add(JsonPrimitive("containerId")); add(JsonPrimitive("fragmentLayout")) }
+    }
+
+    private fun overlaysSchema() = buildJsonObject {
+        put("type", "array"); put("description", "Layouts layered above the rendered root in declaration order.")
+        putJsonObject("items") { put("type", "object"); putJsonObject("properties") { putJsonObject("layout") { put("type", "string") }; put("fixture", fixtureSchema()) }; putJsonArray("required") { add(JsonPrimitive("layout")) } }
     }
 
     private fun tool(name: String, description: String, schema: JsonObject) = buildJsonObject { put("name", name); put("description", description); put("inputSchema", schema) }

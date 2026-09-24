@@ -20,6 +20,42 @@ class RenderRequestValidatorTest {
     }
 
     @Test
+    fun `accepts deterministic RecyclerView rows and selected drawable state`() {
+        RenderRequestValidator.validate(
+            RenderRequest(
+                layout = "fragment_catalog_groups_split",
+                recyclerViews = mapOf(
+                    "@id/groupsRecyclerView" to RecyclerViewFixture(
+                        itemLayout = "item_catalog_group",
+                        items = listOf(
+                            mapOf(
+                                "@id/numberBadge" to ViewFixture(text = "31"),
+                                "@id/name" to ViewFixture(text = "Спальни"),
+                                "@id/root" to ViewFixture(selected = true, backgroundDrawable = "@drawable/bg_catalog_group_row_selected"),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `accepts an activity fragment render target`() {
+        RenderRequestValidator.validate(
+            RenderRequest(
+                layout = "fragment_catalog_groups_split",
+                target = RenderTarget(
+                    kind = RenderTargetKind.ACTIVITY_FRAGMENT,
+                    activityLayout = "activity_main",
+                    containerId = "fragmentContainer",
+                    fragmentLayout = "fragment_catalog_groups_split",
+                ),
+            ),
+        )
+    }
+
+    @Test
     fun `rejects fixture values that cannot be safely applied`() {
         assertFailsWith<RendererException> {
             RenderRequestValidator.validate(
@@ -28,7 +64,35 @@ class RenderRequestValidatorTest {
         }
         assertFailsWith<RendererException> {
             RenderRequestValidator.validate(
+                RenderRequest(
+                    layout = "fragment_catalog_groups_split",
+                    target = RenderTarget(
+                        kind = RenderTargetKind.ACTIVITY_FRAGMENT,
+                        activityLayout = "activity_main",
+                        containerId = "../container",
+                        fragmentLayout = "fragment_catalog_groups_split",
+                    ),
+                ),
+            )
+        }
+        assertFailsWith<RendererException> {
+            RenderRequestValidator.validate(
                 RenderRequest(layout = "screen", fixture = mapOf("@id/image" to ViewFixture(image = FixtureImage(FixtureImageType.COLOR, "red")))),
+            )
+        }
+        assertFailsWith<RendererException> {
+            RenderRequestValidator.validate(
+                RenderRequest(layout = "screen", recyclerViews = mapOf("list" to RecyclerViewFixture(itemLayout = "../item"))),
+            )
+        }
+        assertFailsWith<RendererException> {
+            RenderRequestValidator.validate(
+                RenderRequest(
+                    layout = "screen",
+                    recyclerViews = mapOf(
+                        "list" to RecyclerViewFixture(itemLayout = "item", items = listOf(mapOf("../title" to ViewFixture(text = "bad")))),
+                    ),
+                ),
             )
         }
     }

@@ -41,6 +41,19 @@ render_layout
 `gradleMs` — полное время временной Gradle/Robolectric test-задачи. `renderMs` — время внутри
 probe от inflate до PNG и View Tree; оно входит и в `gradleMs`, и в `totalMs`.
 
+## Воспроизведение рендера
+
+Каждый каталог sidecar-run содержит `render.png`, `view-tree.json` и два артефакта
+воспроизводимости:
+
+- `request.json` — нормализованный `RenderRequest`, с которым работал worker;
+- `replay.json` — имя MCP-инструмента, его аргументы, а также module, variant и test-задача проекта.
+
+В ответах `render_layout` и `render_target` пути к ним возвращаются как `requestPath` и
+`replayPath`. Чтобы повторить эксперимент, вызовите инструмент из поля `tool` файла `replay.json`
+с объектом из `arguments` на той же ревизии проекта и версии renderer. Если явно передавались
+fixture-изображения с локального диска, manifest будет содержать их абсолютные пути.
+
 ## Production-контекст inflation
 
 Sidecar надувает layout из themed Android `Activity`, а не из application context. До lifecycle
@@ -116,7 +129,84 @@ cd android-ui-renderer-mcp
 }
 ```
 
-Ключи fixture — ID View. Доступны переопределения текста, hint, content description, видимости, состояний enabled/selected/checked, цвета текста и фона, размера текста, зачёркивания, а также изображения из абсолютного локального пути, drawable-ресурса приложения или сплошного цвета. Локальный файл должен существовать и быть не больше 20 МиБ; для drawable используйте `@drawable/name` или `name`.
+Ключи fixture — ID View. Доступны переопределения текста, hint, content description, видимости, состояний enabled/selected/checked, цвета текста и фона, фонового drawable, размера текста, зачёркивания, а также изображения из абсолютного локального пути, drawable-ресурса приложения или сплошного цвета. Локальный файл должен существовать и быть не больше 20 МиБ; для drawable используйте `@drawable/name` или `name`.
+
+## Рендер строк RecyclerView
+
+`recyclerViews` передаёт детерминированные данные для временного локального adapter. Рендерер
+инфлейтит реальный `itemLayout` для каждой строки и применяет её fixture к View внутри строки. Он
+не запускает код Fragment, DI или сетевые запросы. `LinearLayoutManager` устанавливается автоматически.
+
+```json
+{
+  "layout": "fragment_catalog_groups_split",
+  "widthDp": 1280,
+  "heightDp": 800,
+  "recyclerViews": {
+    "@id/groupsRecyclerView": {
+      "itemLayout": "item_catalog_group",
+      "items": [
+        {
+          "@id/numberBadge": { "text": "31" },
+          "@id/name": { "text": "Спальни" },
+          "@id/nomenclatureGroupsBadge": { "text": "12 НГ" },
+          "@id/root": {
+            "selected": true,
+            "backgroundDrawable": "@drawable/bg_catalog_group_row_selected"
+          }
+        }
+      ]
+    },
+    "@id/subgroupsRecyclerView": {
+      "itemLayout": "item_catalog_subgroup",
+      "items": [
+        { "@id/number": { "text": "301" }, "@id/name": { "text": "Кровати" } }
+      ]
+    }
+  }
+}
+```
+
+Для горизонтального списка передайте `orientation: "horizontal"`; по умолчанию используется вертикальный. Ограничения: не более 20 списков, 200 строк в каждом и 500 строк суммарно.
+
+## Рендер overlay и индикаторов загрузки
+
+Используйте `overlays`, чтобы наложить XML-layout поверх прямого рендера layout или цели
+Activity + fragment. У каждого overlay собственная область fixture. Indeterminate `ProgressBar` и
+`CircularProgressIndicator` в PNG показываются детерминированным статичным кольцом.
+
+```json
+{
+  "overlays": [{
+    "layout": "view_blocking_progress_overlay",
+    "fixture": {
+      "@id/blocking_progress_overlay_root": { "visibility": "visible" },
+      "@id/blocking_progress_message": { "visibility": "visible", "text": "Ожидайте..." }
+    }
+  }]
+}
+```
+
+## Рендер Activity с фрагментом
+
+Используйте `render_target`, когда фрагмент нужно показать внутри XML-оболочки Activity. Рендерер
+инфлейтит layout Activity, вставляет layout фрагмента в `containerId`, затем применяет fixtures и
+строки RecyclerView. Production-класс Fragment, DI, навигация и сеть намеренно не запускаются.
+
+```json
+{
+  "target": {
+    "kind": "activity_fragment",
+    "activityLayout": "activity_main",
+    "containerId": "fragmentContainer",
+    "fragmentLayout": "fragment_catalog_groups_split"
+  },
+  "widthPx": 1280,
+  "heightPx": 728,
+  "densityDpi": 240,
+  "orientation": "landscape"
+}
+```
 
 ## Воспроизведение целевого устройства
 

@@ -29,7 +29,16 @@ class SessionStore(
         Files.writeString(treePath, json.encodeToString(result.viewTree))
         val metadata = """{"renderId":"$id","generation":$generation,"createdAt":"${Instant.now()}"}"""
         Files.writeString(directory.resolve("metadata.json"), metadata)
-        return RenderSession(id, generation, result.screenshotPath, treePath.toString(), result.viewTree, System.currentTimeMillis())
+        return RenderSession(
+            id,
+            generation,
+            result.screenshotPath,
+            result.requestPath,
+            result.replayPath,
+            treePath.toString(),
+            result.viewTree,
+            System.currentTimeMillis(),
+        )
             .also { sessions[id] = it }
     }
 

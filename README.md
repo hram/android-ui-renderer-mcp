@@ -42,6 +42,19 @@ Every render also returns timing metadata:
 `gradleMs` is the wall time of the temporary Gradle/Robolectric test task. `renderMs` is the
 inflate-to-PNG/View-tree portion inside that probe; it is included in `gradleMs` and `totalMs`.
 
+## Reproduce a render
+
+Every sidecar run directory contains the rendered `render.png`, `view-tree.json`, and two
+reproducibility artifacts:
+
+- `request.json` — the normalized `RenderRequest` used by the worker;
+- `replay.json` — the MCP tool name, its arguments, and the project module, variant, and test task.
+
+`render_layout` and `render_target` responses expose these locations as `requestPath` and
+`replayPath`. To repeat a render, call the `tool` from `replay.json` with its `arguments` against
+the same project revision and renderer version. The manifest may include absolute local-image paths
+when such fixture images were explicitly supplied.
+
 ## Production inflation context
 
 The sidecar inflates from a themed Android `Activity`, not the application context. Before the
@@ -119,9 +132,88 @@ attributes and does not invent business data.
 ```
 
 Fixture keys are View IDs. The available overrides are text, hint, content description,
-visibility, enabled/selected/checked state, text and background colors, text size, strike-through,
-and an image from an absolute local path, an app drawable resource, or a solid color. Local images
+visibility, enabled/selected/checked state, text and background colors, a background drawable,
+text size, strike-through, and an image from an absolute local path, an app drawable resource, or a solid color. Local images
 must be regular files no larger than 20 MiB; use `@drawable/name` (or `name`) for an app drawable.
+
+## Render RecyclerView rows
+
+`recyclerViews` supplies deterministic, local adapter data. The renderer inflates the real
+`itemLayout` for each row and applies that row's fixture to views inside the row. It does not run
+fragment code, DI, or network calls. A `LinearLayoutManager` is installed automatically.
+
+```json
+{
+  "layout": "fragment_catalog_groups_split",
+  "widthDp": 1280,
+  "heightDp": 800,
+  "recyclerViews": {
+    "@id/groupsRecyclerView": {
+      "itemLayout": "item_catalog_group",
+      "items": [
+        {
+          "@id/numberBadge": { "text": "31" },
+          "@id/name": { "text": "Bedrooms" },
+          "@id/nomenclatureGroupsBadge": { "text": "12 NG" },
+          "@id/root": {
+            "selected": true,
+            "backgroundDrawable": "@drawable/bg_catalog_group_row_selected"
+          }
+        }
+      ]
+    },
+    "@id/subgroupsRecyclerView": {
+      "itemLayout": "item_catalog_subgroup",
+      "items": [
+        { "@id/number": { "text": "301" }, "@id/name": { "text": "Beds" } }
+      ]
+    }
+  }
+}
+```
+
+Use `orientation: "horizontal"` for horizontal lists; the default is vertical. `recyclerViews`
+accepts at most 20 lists, 200 rows per list, and 500 rows in total.
+
+## Render overlays and loading indicators
+
+Use `overlays` to layer XML layouts above either a direct layout render or an activity-fragment
+target. Each overlay has its own fixture scope. Indeterminate `ProgressBar` and
+`CircularProgressIndicator` controls are rendered as a deterministic static ring in PNG output.
+
+```json
+{
+  "overlays": [{
+    "layout": "view_blocking_progress_overlay",
+    "fixture": {
+      "@id/blocking_progress_overlay_root": { "visibility": "visible" },
+      "@id/blocking_progress_message": { "visibility": "visible", "text": "Please wait…" }
+    }
+  }]
+}
+```
+
+## Render an activity host with a fragment
+
+Use `render_target` when a fragment must be rendered inside the XML shell of its activity. The
+renderer inflates the activity layout, inserts the fragment layout into `containerId`, then applies
+the supplied fixtures and RecyclerView rows. It deliberately does not instantiate production
+Fragment classes or execute DI, navigation, and network calls.
+
+```json
+{
+  "target": {
+    "kind": "activity_fragment",
+    "activityLayout": "activity_main",
+    "containerId": "fragmentContainer",
+    "fragmentLayout": "fragment_catalog_groups_split"
+  },
+  "widthPx": 1280,
+  "heightPx": 728,
+  "densityDpi": 240,
+  "orientation": "landscape"
+}
+```
 
 ## Reproduce the target device
 

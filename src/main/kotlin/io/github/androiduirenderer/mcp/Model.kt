@@ -56,7 +56,28 @@ data class RenderRequest(
     val background: String? = "#FFFFFF",
     /** Explicit runtime values supplied by the agent; no values are inferred by the renderer. */
     val fixture: Map<String, ViewFixture> = emptyMap(),
+    /** Explicit rows rendered into RecyclerViews after layout inflation. */
+    val recyclerViews: Map<String, RecyclerViewFixture> = emptyMap(),
+    /** Optional composed root used by render_target. */
+    val target: RenderTarget? = null,
+    val overlays: List<OverlayFixture> = emptyList(),
 )
+
+@Serializable
+data class OverlayFixture(val layout: String, val fixture: Map<String, ViewFixture> = emptyMap())
+
+@Serializable
+data class RenderTarget(
+    val kind: RenderTargetKind,
+    val activityLayout: String,
+    val containerId: String,
+    val fragmentLayout: String,
+)
+
+@Serializable
+enum class RenderTargetKind {
+    @SerialName("activity_fragment") ACTIVITY_FRAGMENT,
+}
 
 /**
  * Properties the renderer may set on a View after inflation and before measure/layout/draw.
@@ -73,10 +94,25 @@ data class ViewFixture(
     val checked: Boolean? = null,
     val image: FixtureImage? = null,
     val backgroundColor: String? = null,
+    val backgroundDrawable: String? = null,
     val textColor: String? = null,
     val textSizeSp: Float? = null,
     val strikeThrough: Boolean? = null,
 )
+
+/** A deterministic, temporary adapter for rendering a RecyclerView without fragment code or data sources. */
+@Serializable
+data class RecyclerViewFixture(
+    val itemLayout: String,
+    val orientation: FixtureRecyclerOrientation = FixtureRecyclerOrientation.VERTICAL,
+    val items: List<Map<String, ViewFixture>> = emptyList(),
+)
+
+@Serializable
+enum class FixtureRecyclerOrientation {
+    @SerialName("vertical") VERTICAL,
+    @SerialName("horizontal") HORIZONTAL,
+}
 
 @Serializable
 data class FixtureImage(
@@ -104,6 +140,8 @@ data class WorkerRenderResult(
     val widthPx: Int,
     val heightPx: Int,
     val screenshotPath: String,
+    val requestPath: String? = null,
+    val replayPath: String? = null,
     val viewTree: ViewNode,
     val warnings: List<String> = emptyList(),
     val timings: WorkerTimings = WorkerTimings(),
@@ -113,6 +151,8 @@ data class RenderSession(
     val id: String,
     val generation: Long,
     val screenshotPath: String,
+    val requestPath: String? = null,
+    val replayPath: String? = null,
     val viewTreePath: String,
     val tree: ViewNode,
     val createdAtMillis: Long,
