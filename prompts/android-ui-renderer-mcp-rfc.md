@@ -259,6 +259,18 @@ fontScale   = 1.0
 nightMode   = false
 ```
 
+`fontScale` is applied through `Configuration.fontScale` on SDK 34, so Android 14 non-linear
+font scaling is in effect: at `fontScale = 1.3` a 12sp text grows 1.3×, a 24sp text only ~1.1×.
+Measured on `item_cart_product`, 212 dpi:
+
+| sp | 1.0 | 1.3 | 2.0 |
+| --- | ---: | ---: | ---: |
+| 12sp | 15.9 px | 20.67 px (×1.30) | 31.8 px (×2.0) |
+| 24sp | 31.8 px | 34.98 px (×1.10) | 47.7 px (×1.5) |
+
+Sizes from XML dimens go through `getDimensionPixelSize` and are rounded to whole pixels.
+One render is one configuration; sweeping densities or font scales means one render per config.
+
 ## Output
 
 ```json
@@ -372,9 +384,28 @@ and:
     "top": 8,
     "right": 16,
     "bottom": 8
+  },
+  "textLayout": {
+    "textSizePx": 27.0,
+    "maxLines": 1,
+    "lineCount": 1,
+    "ellipsisCount": 0,
+    "truncated": false
   }
 }
 ```
+
+`textLayout` is present for every `TextView` (including buttons):
+
+- `textSizePx` — final size after density and font scaling;
+- `maxLines` — omitted when unlimited;
+- `lineCount`, `ellipsisCount`, `truncated` — omitted when the View has no `Layout` (e.g. `GONE`);
+- `ellipsisCount` — characters replaced by an ellipsis, summed over all lines;
+- `truncated` — `true` when text is ellipsized or has more lines than `maxLines`.
+
+A `maxLines="1"` title that ellipsizes keeps its bounds and looks plausible in the PNG.
+Bounds-gap checks cannot see it; `truncated` can. Example: a 56-character product name keeps the
+same right edge at `fontScale` 1.0 / 1.3 / 2.0 while `ellipsisCount` grows 23 → 27 → 36.
 
 ---
 
@@ -426,6 +457,7 @@ Detects invalid or zero-size visible Views.
 ### `clipped_text`
 
 Best-effort detection where text dimensions exceed available View bounds.
+Can be built directly on `textLayout.truncated` from the View Tree.
 
 ### `edge_spacing`
 
@@ -500,6 +532,7 @@ The serialization should include at minimum:
 - margins;
 - padding;
 - text where applicable;
+- text layout for TextViews: final text size, maxLines, line count, ellipsis count, truncated flag;
 - contentDescription where applicable;
 - child hierarchy.
 
@@ -889,6 +922,7 @@ When changing Android XML/View UI:
    - margins;
    - overlap;
    - clipping;
+   - truncated text (`textLayout.truncated`), especially at larger `fontScale`;
    - elements outside the screen;
    - touch target size;
    - orientation-specific problems.
