@@ -142,7 +142,7 @@ class StdioMcpServer(
             }; putJsonArray("required") { add(JsonPrimitive("target")) }
         }))
         add(tool("get_view_tree", "Return the machine-readable View hierarchy for a prior render.", idSchema("renderId")))
-        add(tool("inspect_view", "Return bounds, visibility, text, padding and margins for one View.", buildJsonObject {
+        add(tool("inspect_view", "Return bounds, visibility, text, padding and margins for one View. TextViews also carry textLayout: textSizePx, maxLines, lineCount, ellipsisCount and truncated, so text cut by ellipsis or maxLines is detectable even when bounds do not overlap.", buildJsonObject {
             put("type", "object"); putJsonObject("properties") {
                 putJsonObject("renderId") { put("type", "string") }; putJsonObject("viewId") { put("type", "string") }
             }; putJsonArray("required") { add(JsonPrimitive("renderId")); add(JsonPrimitive("viewId")) }

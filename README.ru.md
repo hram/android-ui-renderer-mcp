@@ -25,6 +25,18 @@ render_layout
 один View по Android ID. Узел содержит resource name, класс, текст, состояние, padding, margins и
 абсолютные границы в пикселях относительно корня рендера.
 
+У TextView есть блок `textLayout`: `textSizePx` (после применения density и font scale), `maxLines`,
+`lineCount`, `ellipsisCount` и `truncated`. Заголовок с `maxLines="1"`, обрезанный многоточием,
+сохраняет свои bounds и выглядит нормально на PNG, поэтому проверяйте `truncated`, а не только bounds:
+
+```json
+"textLayout": { "textSizePx": 31.0, "maxLines": 1, "lineCount": 1, "ellipsisCount": 27, "truncated": true }
+```
+
+Масштабирование шрифта следует нелинейным кривым Android 14 (API 34): при `fontScale: 1.3` текст 12sp
+растёт в 1,3 раза, а 24sp — только в 1,1 раза. Сравнивайте `textSizePx` между конфигурациями, а не
+умножайте на линейный коэффициент.
+
 Каждый render также возвращает метрики:
 
 ```json

@@ -26,6 +26,17 @@ render_layout
 one node by Android ID. Nodes include resource name, class, text, state, padding, margins and
 absolute bounds in pixels relative to the rendered root.
 
+TextViews also carry `textLayout`: `textSizePx` (after density and font scaling), `maxLines`,
+`lineCount`, `ellipsisCount` and `truncated`. A `maxLines="1"` title that ellipsizes keeps its bounds
+and looks plausible in the PNG, so check `truncated` instead of relying on bounds alone:
+
+```json
+"textLayout": { "textSizePx": 31.0, "maxLines": 1, "lineCount": 1, "ellipsisCount": 27, "truncated": true }
+```
+
+Font scaling follows Android 14 (API 34) non-linear curves: at `fontScale: 1.3` a 12sp text grows
+1.3×, while 24sp grows only 1.1×. Compare `textSizePx` across configs rather than assuming a linear factor.
+
 Every render also returns timing metadata:
 
 ```json

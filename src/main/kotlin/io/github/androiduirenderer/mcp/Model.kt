@@ -26,6 +26,7 @@ data class ViewNode(
     val selected: Boolean = false,
     val checked: Boolean? = null,
     val text: String? = null,
+    val textLayout: TextLayoutInfo? = null,
     val contentDescription: String? = null,
     val bounds: Bounds,
     val measuredWidth: Int = bounds.width,
@@ -33,6 +34,20 @@ data class ViewNode(
     val margins: Insets? = null,
     val padding: Insets? = null,
     val children: List<ViewNode> = emptyList(),
+)
+
+/** Layout-level text facts for TextViews; line fields are null when the View has no Layout (e.g. GONE). */
+@Serializable
+data class TextLayoutInfo(
+    /** Final pixel size after density and (possibly non-linear) font scaling. */
+    val textSizePx: Float,
+    /** Null when unlimited. */
+    val maxLines: Int? = null,
+    val lineCount: Int? = null,
+    /** Characters replaced by an ellipsis across all lines. */
+    val ellipsisCount: Int? = null,
+    /** True when text is ellipsized or has more lines than maxLines (clipped without ellipsis). */
+    val truncated: Boolean? = null,
 )
 
 @Serializable
