@@ -1,0 +1,206 @@
+{
+  "id": "root",
+  "resourceName": "io.github.androiduirenderer.sample:id/root",
+  "className": "androidx.constraintlayout.widget.ConstraintLayout",
+  "visibility": "VISIBLE",
+  "enabled": true,
+  "clickable": false,
+  "selected": true,
+  "bounds": {
+    "left": 0,
+    "top": 0,
+    "right": 800,
+    "bottom": 188
+  },
+  "measuredWidth": 800,
+  "measuredHeight": 188,
+  "padding": {
+    "left": 32,
+    "top": 24,
+    "right": 32,
+    "bottom": 24
+  },
+  "children": [
+    {
+      "id": "cover",
+      "resourceName": "io.github.androiduirenderer.sample:id/cover",
+      "className": "android.widget.ImageView",
+      "visibility": "VISIBLE",
+      "enabled": true,
+      "clickable": false,
+      "selected": true,
+      "contentDescription": "Book cover",
+      "bounds": {
+        "left": 32,
+        "top": 38,
+        "right": 120,
+        "bottom": 150
+      },
+      "measuredWidth": 88,
+      "measuredHeight": 112,
+      "margins": {
+        "left": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "padding": {
+        "left": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "children": []
+    },
+    {
+      "id": "title",
+      "resourceName": "io.github.androiduirenderer.sample:id/title",
+      "className": "android.widget.TextView",
+      "visibility": "VISIBLE",
+      "enabled": true,
+      "clickable": false,
+      "selected": true,
+      "text": "The Pragmatic Programmer",
+      "textLayout": {
+        "textSizePx": 32.0,
+        "maxLines": 1,
+        "lineCount": 1,
+        "ellipsisCount": 0,
+        "truncated": false
+      },
+      "bounds": {
+        "left": 144,
+        "top": 38,
+        "right": 621,
+        "bottom": 81
+      },
+      "measuredWidth": 477,
+      "measuredHeight": 43,
+      "margins": {
+        "left": 24,
+        "top": 0,
+        "right": 16,
+        "bottom": 0
+      },
+      "padding": {
+        "left": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "children": []
+    },
+    {
+      "id": "author",
+      "resourceName": "io.github.androiduirenderer.sample:id/author",
+      "className": "android.widget.TextView",
+      "visibility": "VISIBLE",
+      "enabled": true,
+      "clickable": false,
+      "selected": true,
+      "text": "David Thomas, Andrew Hunt",
+      "textLayout": {
+        "textSizePx": 28.0,
+        "maxLines": 1,
+        "lineCount": 1,
+        "ellipsisCount": 0,
+        "truncated": false
+      },
+      "bounds": {
+        "left": 144,
+        "top": 85,
+        "right": 621,
+        "bottom": 123
+      },
+      "measuredWidth": 477,
+      "measuredHeight": 38,
+      "margins": {
+        "left": 0,
+        "top": 4,
+        "right": 0,
+        "bottom": 0
+      },
+      "padding": {
+        "left": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "children": []
+    },
+    {
+      "id": "meta",
+      "resourceName": "io.github.androiduirenderer.sample:id/meta",
+      "className": "android.widget.TextView",
+      "visibility": "VISIBLE",
+      "enabled": true,
+      "clickable": false,
+      "selected": true,
+      "text": "1999 · 352 pages",
+      "textLayout": {
+        "textSizePx": 24.0,
+        "lineCount": 1,
+        "ellipsisCount": 0,
+        "truncated": false
+      },
+      "bounds": {
+        "left": 144,
+        "top": 131,
+        "right": 621,
+        "bottom": 164
+      },
+      "measuredWidth": 477,
+      "measuredHeight": 33,
+      "margins": {
+        "left": 0,
+        "top": 8,
+        "right": 0,
+        "bottom": 0
+      },
+      "padding": {
+        "left": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "children": []
+    },
+    {
+      "id": "statusBadge",
+      "resourceName": "io.github.androiduirenderer.sample:id/statusBadge",
+      "className": "android.widget.TextView",
+      "visibility": "VISIBLE",
+      "enabled": true,
+      "clickable": false,
+      "selected": true,
+      "text": "Available",
+      "textLayout": {
+        "textSizePx": 24.0,
+        "lineCount": 1,
+        "ellipsisCount": 0,
+        "truncated": false
+      },
+      "bounds": {
+        "left": 637,
+        "top": 38,
+        "right": 768,
+        "bottom": 79
+      },
+      "measuredWidth": 131,
+      "measuredHeight": 41,
+      "margins": {
+        "left": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "padding": {
+        "left": 16,
+        "top": 4,
+        "right": 16,
+        "bottom": 4
+      },
+      "children": []
+    }
+  ]
+}

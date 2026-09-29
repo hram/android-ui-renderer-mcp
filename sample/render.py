@@ -46,13 +46,24 @@ def main() -> int:
             print(f"FAIL {path.stem}: {text[:2000]}")
             continue
         data = json.loads(text)
-        shutil.copyfile(data["screenshotPath"], RENDERS / f"{path.stem}.png")
-        shutil.copyfile(data["viewTreePath"], RENDERS / f"{path.stem}.view-tree.json")
+        out = RENDERS / path.stem
+        out.mkdir(exist_ok=True)
+        shutil.copyfile(data["screenshotPath"], out / "render.png")
+        _write_json(out / "view-tree.json", json.loads(pathlib.Path(data["viewTreePath"]).read_text(encoding="utf-8")))
+        _write_json(out / "request.json", json.loads(pathlib.Path(data["requestPath"]).read_text(encoding="utf-8")))
+        replay = json.loads(pathlib.Path(data["replayPath"]).read_text(encoding="utf-8"))
+        # The recipe records the absolute project root of this machine; keep it portable in the repository.
+        replay["project"]["root"] = str(SAMPLE.relative_to(ROOT))
+        _write_json(out / "replay.json", replay)
         t = data["timings"]
         print(f"ok   {path.stem}: renderId={data['renderId']} gradleMs={t['gradleMs']} renderMs={t['renderMs']}")
     proc.stdin.close()
     proc.wait(timeout=60)
     return 1 if failures else 0
+
+
+def _write_json(path: pathlib.Path, value) -> None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _env() -> dict:

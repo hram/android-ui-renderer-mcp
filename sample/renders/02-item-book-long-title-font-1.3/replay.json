@@ -1,0 +1,41 @@
+{
+  "format": "android-ui-renderer-mcp/replay/v1",
+  "tool": "render_layout",
+  "arguments": {
+    "layout": "item_book",
+    "widthDp": 400,
+    "densityDpi": 320,
+    "fontScale": 1.3,
+    "background": "#FFFFFF",
+    "fixture": {
+      "@id/title": {
+        "text": "Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems"
+      },
+      "@id/author": {
+        "text": "Martin Kleppmann"
+      },
+      "@id/meta": {
+        "text": "2017 · 616 pages"
+      },
+      "@id/cover": {
+        "image": {
+          "type": "drawable_resource",
+          "value": "@drawable/cover_green"
+        }
+      },
+      "@id/statusBadge": {
+        "text": "On loan",
+        "backgroundDrawable": "@drawable/bg_badge_on_loan",
+        "textColor": "#8A4B08"
+      }
+    },
+    "recyclerViews": {},
+    "overlays": []
+  },
+  "project": {
+    "root": "sample",
+    "module": ":app",
+    "variant": "debug",
+    "testTask": ":app:testDebugUnitTest"
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "layout": "fragment_book_list",
+  "widthDp": 360,
+  "heightDp": 640,
+  "densityDpi": 320,
+  "background": "#FFFFFF",
+  "fixture": {
+    "@id/header": {
+      "text": "4 books"
+    }
+  },
+  "recyclerViews": {
+    "@id/bookList": {
+      "itemLayout": "item_book",
+      "orientation": "vertical",
+      "items": [
+        {
+          "@id/title": {
+            "text": "The Pragmatic Programmer"
+          },
+          "@id/author": {
+            "text": "David Thomas, Andrew Hunt"
+          },
+          "@id/meta": {
+            "text": "1999 · 352 pages"
+          },
+          "@id/cover": {
+            "image": {
+              "type": "drawable_resource",
+              "value": "@drawable/cover_blue"
+            }
+          }
+        },
+        {
+          "@id/title": {
+            "text": "Designing Data-Intensive Applications"
+          },
+          "@id/author": {
+            "text": "Martin Kleppmann"
+          },
+          "@id/meta": {
+            "text": "2017 · 616 pages"
+          },
+          "@id/cover": {
+            "image": {
+              "type": "drawable_resource",
+              "value": "@drawable/cover_green"
+            }
+          },
+          "@id/statusBadge": {
+            "text": "On loan",
+            "backgroundDrawable": "@drawable/bg_badge_on_loan",
+            "textColor": "#8A4B08"
+          }
+        },
+        {
+          "@id/title": {
+            "text": "Refactoring"
+          },
+          "@id/author": {
+            "text": "Martin Fowler"
+          },
+          "@id/meta": {
+            "text": "2018 · 448 pages"
+          },
+          "@id/cover": {
+            "image": {
+              "type": "drawable_resource",
+              "value": "@drawable/cover_amber"
+            }
+          }
+        },
+        {
+          "@id/title": {
+            "text": "Working Effectively with Legacy Code"
+          },
+          "@id/author": {
+            "text": "Michael Feathers"
+          },
+          "@id/meta": {
+            "text": "2004 · 456 pages"
+          },
+          "@id/cover": {
+            "image": {
+              "type": "drawable_resource",
+              "value": "@drawable/cover_blue"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "overlays": []
+}

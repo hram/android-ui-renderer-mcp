@@ -7,9 +7,92 @@ fixture, and the target device size; the MCP returns a screenshot and the View t
 
 The Android project does not receive a permanent Robolectric dependency or test source.
 
-To see every capability on an open project, use the [demo app](sample/README.md): a list row, a
-fragment with a RecyclerView, a master-detail layout and a whole activity with a toolbar, each with
-a ready render request and its PNG and View tree.
+## Demo app
+
+[`sample/`](sample/README.md) is a small open Android app (XML/View, Material 3, "Shelf" — a book
+library) built to show every renderer capability on a project anyone can clone. It is a real app with
+an activity, fragments and an adapter over local sample data, but the renderer never runs that code:
+each render request supplies its data explicitly.
+
+| Screen | Layout | What it exercises |
+| --- | --- | --- |
+| List row | `item_book` | ConstraintLayout, drawable cover, `maxLines="1"` title, status badge, selected background |
+| Fragment with a list | `fragment_book_list` | `RecyclerView` filled from `recyclerViews` rows |
+| Master-detail | `fragment_library` | list on the left, `<include>`d details on the right, one selected row |
+| Whole screen | `activity_main` + fragment | `MaterialToolbar` with title and menu from XML, fragment inserted into `FragmentContainerView` |
+| Loading state | `view_loading_overlay` | overlay above the whole screen, indeterminate spinner frozen |
+
+Seven ready requests live in [`sample/render-requests/`](sample/render-requests); `python3 sample/render.py`
+runs them through this MCP server and stores the results in [`sample/renders/`](sample/renders).
+
+The whole screen — activity toolbar plus master-detail fragment (`render_target`):
+
+![Activity with toolbar and master-detail fragment](sample/renders/05-activity-toolbar-library/render.png)
+
+The same screen with the loading overlay, and again with `locale: ru-RU` and `nightMode: true`:
+
+| Loading overlay | Russian locale, night mode |
+| --- | --- |
+| ![Loading overlay](sample/renders/06-activity-toolbar-library-loading/render.png) | ![Russian locale, night mode](sample/renders/07-activity-toolbar-library-ru-night/render.png) |
+
+A fragment with a RecyclerView on a phone-sized canvas, and a single row:
+
+| `fragment_book_list` | `item_book`, selected | `item_book`, `fontScale: 1.3` |
+| --- | --- | --- |
+| ![Fragment with RecyclerView](sample/renders/03-fragment-book-list/render.png) | ![Selected row](sample/renders/01-item-book/render.png) | ![Long title at font scale 1.3](sample/renders/02-item-book-long-title-font-1.3/render.png) |
+
+## What a render produces
+
+A render is not only a picture. Every run leaves four files, and all of them are committed for each
+demo scenario in `sample/renders/<scenario>/`. Below they are shown for
+[`02-item-book-long-title-font-1.3`](sample/renders/02-item-book-long-title-font-1.3).
+
+**1. `request.json` and `replay.json` — the input, for history and replay.** `request.json` is the
+normalized request the worker executed. `replay.json` is the recipe to repeat it: the MCP tool, its
+arguments and the project module, variant and test task.
+
+```json
+{
+  "format": "android-ui-renderer-mcp/replay/v1",
+  "tool": "render_layout",
+  "arguments": {
+    "layout": "item_book",
+    "widthDp": 400,
+    "densityDpi": 320,
+    "fontScale": 1.3,
+    "fixture": {
+      "@id/title": { "text": "Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems" },
+      "@id/statusBadge": { "text": "On loan", "backgroundDrawable": "@drawable/bg_badge_on_loan", "textColor": "#8A4B08" }
+    }
+  },
+  "project": { "root": "sample", "module": ":app", "variant": "debug", "testTask": ":app:testDebugUnitTest" }
+}
+```
+
+(Shortened. A real `replay.json` records the absolute project root; in the committed demo files it is
+rewritten to `sample`.)
+
+**2. `render.png` — the render itself.** Drawn from the same laid-out View hierarchy as the tree below.
+
+![Long title at font scale 1.3](sample/renders/02-item-book-long-title-font-1.3/render.png)
+
+**3. `view-tree.json` — the component tree.** Every View with its class, ID, state, text, padding,
+margins and absolute bounds in pixels; TextViews also carry `textLayout`. Here it shows what the picture
+only hints at: the title keeps its bounds, but 81 characters are replaced by the ellipsis.
+
+```json
+{
+  "id": "title",
+  "className": "android.widget.TextView",
+  "text": "Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems",
+  "textLayout": { "textSizePx": 40.0, "maxLines": 1, "lineCount": 1, "ellipsisCount": 81, "truncated": true },
+  "bounds": { "left": 144, "top": 72, "right": 614, "bottom": 126 },
+  "margins": { "left": 24, "top": 0, "right": 16, "bottom": 0 }
+}
+```
+
+The same tree is available right after a render through `get_view_tree(renderId)` and
+`inspect_view(renderId, viewId)`, without reading files.
 
 ## Geometry feedback loop
 

@@ -1,0 +1,144 @@
+{
+  "format": "android-ui-renderer-mcp/replay/v1",
+  "tool": "render_target",
+  "arguments": {
+    "layout": "fragment_library",
+    "widthPx": 1920,
+    "heightPx": 1200,
+    "densityDpi": 240,
+    "orientation": "landscape",
+    "background": "#FFFFFF",
+    "fixture": {
+      "@id/libraryHeader": {
+        "text": "4 books"
+      },
+      "@id/detailCover": {
+        "image": {
+          "type": "drawable_resource",
+          "value": "@drawable/cover_green"
+        }
+      },
+      "@id/detailTitle": {
+        "text": "Designing Data-Intensive Applications"
+      },
+      "@id/detailAuthor": {
+        "text": "Martin Kleppmann"
+      },
+      "@id/detailStatus": {
+        "text": "On loan",
+        "backgroundDrawable": "@drawable/bg_badge_on_loan",
+        "textColor": "#8A4B08"
+      },
+      "@id/detailDescription": {
+        "text": "How databases, streams and distributed systems actually behave, and which trade-offs they force on you."
+      }
+    },
+    "recyclerViews": {
+      "@id/libraryList": {
+        "itemLayout": "item_book",
+        "orientation": "vertical",
+        "items": [
+          {
+            "@id/title": {
+              "text": "The Pragmatic Programmer"
+            },
+            "@id/author": {
+              "text": "David Thomas, Andrew Hunt"
+            },
+            "@id/meta": {
+              "text": "1999 · 352 pages"
+            },
+            "@id/cover": {
+              "image": {
+                "type": "drawable_resource",
+                "value": "@drawable/cover_blue"
+              }
+            }
+          },
+          {
+            "@id/title": {
+              "text": "Designing Data-Intensive Applications"
+            },
+            "@id/author": {
+              "text": "Martin Kleppmann"
+            },
+            "@id/meta": {
+              "text": "2017 · 616 pages"
+            },
+            "@id/cover": {
+              "image": {
+                "type": "drawable_resource",
+                "value": "@drawable/cover_green"
+              }
+            },
+            "@id/statusBadge": {
+              "text": "On loan",
+              "backgroundDrawable": "@drawable/bg_badge_on_loan",
+              "textColor": "#8A4B08"
+            },
+            "@id/root": {
+              "selected": true,
+              "backgroundDrawable": "@drawable/bg_book_row_selected"
+            }
+          },
+          {
+            "@id/title": {
+              "text": "Refactoring"
+            },
+            "@id/author": {
+              "text": "Martin Fowler"
+            },
+            "@id/meta": {
+              "text": "2018 · 448 pages"
+            },
+            "@id/cover": {
+              "image": {
+                "type": "drawable_resource",
+                "value": "@drawable/cover_amber"
+              }
+            }
+          },
+          {
+            "@id/title": {
+              "text": "Working Effectively with Legacy Code"
+            },
+            "@id/author": {
+              "text": "Michael Feathers"
+            },
+            "@id/meta": {
+              "text": "2004 · 456 pages"
+            },
+            "@id/cover": {
+              "image": {
+                "type": "drawable_resource",
+                "value": "@drawable/cover_blue"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "target": {
+      "kind": "activity_fragment",
+      "activityLayout": "activity_main",
+      "containerId": "fragmentContainer",
+      "fragmentLayout": "fragment_library"
+    },
+    "overlays": [
+      {
+        "layout": "view_loading_overlay",
+        "fixture": {
+          "@id/loadingRoot": {
+            "visibility": "visible"
+          }
+        }
+      }
+    ]
+  },
+  "project": {
+    "root": "sample",
+    "module": ":app",
+    "variant": "debug",
+    "testTask": ":app:testDebugUnitTest"
+  }
+}

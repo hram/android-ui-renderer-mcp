@@ -1,0 +1,39 @@
+{
+  "format": "android-ui-renderer-mcp/replay/v1",
+  "tool": "render_layout",
+  "arguments": {
+    "layout": "item_book",
+    "widthDp": 400,
+    "densityDpi": 320,
+    "background": "#FFFFFF",
+    "fixture": {
+      "@id/title": {
+        "text": "The Pragmatic Programmer"
+      },
+      "@id/author": {
+        "text": "David Thomas, Andrew Hunt"
+      },
+      "@id/meta": {
+        "text": "1999 · 352 pages"
+      },
+      "@id/cover": {
+        "image": {
+          "type": "drawable_resource",
+          "value": "@drawable/cover_blue"
+        }
+      },
+      "@id/root": {
+        "selected": true,
+        "backgroundDrawable": "@drawable/bg_book_row_selected"
+      }
+    },
+    "recyclerViews": {},
+    "overlays": []
+  },
+  "project": {
+    "root": "sample",
+    "module": ":app",
+    "variant": "debug",
+    "testTask": ":app:testDebugUnitTest"
+  }
+}

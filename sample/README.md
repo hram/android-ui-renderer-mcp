@@ -8,7 +8,7 @@ but the renderer never runs that code: each render request supplies the data exp
 sample/
 ├── app/                 # the Android app (module :app, variant debug)
 ├── render-requests/     # one MCP call per file: {"tool": ..., "arguments": ...}
-├── renders/             # PNG + View tree produced from those requests
+├── renders/<scenario>/  # render.png, view-tree.json, request.json, replay.json per request
 └── render.py            # runs every request through the MCP server
 ```
 
@@ -31,7 +31,8 @@ python3 sample/render.py               # or a prefix: python3 sample/render.py 0
 ```
 
 `render.py` starts the MCP server over stdio with `PROJECT_PATH=sample`, calls each request and copies
-`render.png` and `view-tree.json` into `renders/`. The same JSON can be passed to the tools from any MCP
+the run's `render.png`, `view-tree.json`, `request.json` and `replay.json` into `renders/<scenario>/`
+(the absolute project root in `replay.json` is rewritten to `sample`). The same JSON can be passed to the tools from any MCP
 client.
 
 ## Requests and results
@@ -46,9 +47,9 @@ client.
 | [`06-activity-toolbar-library-loading`](render-requests/06-activity-toolbar-library-loading.json) | `render_target` | the same screen with the loading overlay; the spinner is frozen |
 | [`07-activity-toolbar-library-ru-night`](render-requests/07-activity-toolbar-library-ru-night.json) | `render_target` | `locale: ru-RU` + `nightMode: true`: strings and colors come from `values-ru` / `values-night` |
 
-![Activity with toolbar and master-detail fragment](renders/05-activity-toolbar-library.png)
+![Activity with toolbar and master-detail fragment](renders/05-activity-toolbar-library/render.png)
 
-![Long title at fontScale 1.3](renders/02-item-book-long-title-font-1.3.png)
+![Long title at fontScale 1.3](renders/02-item-book-long-title-font-1.3/render.png)
 
 For `02`, the View tree reports the truncation that the picture only hints at:
 

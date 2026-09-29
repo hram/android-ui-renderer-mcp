@@ -6,9 +6,94 @@
 
 Проект Android не получает постоянную зависимость Robolectric и дополнительные тестовые исходники.
 
-Все возможности можно проверить на открытом проекте: [демо-приложение](sample/README.md) содержит
-строку списка, фрагмент с RecyclerView, master-detail и целиком Activity с тулбаром. Для каждого
-сценария есть готовый запрос рендера, PNG и View tree.
+## Демо-приложение
+
+[`sample/`](sample/README.md) — небольшое открытое Android-приложение (XML/View, Material 3, «Shelf» —
+библиотека книг), сделанное, чтобы показать все возможности renderer на проекте, который может
+склонировать кто угодно. Это настоящее приложение с Activity, фрагментами и адаптером над локальными
+данными, но renderer этот код не выполняет: каждый запрос рендера передаёт данные явно.
+
+| Экран | Layout | Что проверяет |
+| --- | --- | --- |
+| Строка списка | `item_book` | ConstraintLayout, обложка из drawable, заголовок с `maxLines="1"`, бейдж статуса, selected-фон |
+| Фрагмент со списком | `fragment_book_list` | `RecyclerView`, заполненный строками из `recyclerViews` |
+| Master-detail | `fragment_library` | список слева, детали через `<include>` справа, одна выбранная строка |
+| Экран целиком | `activity_main` + фрагмент | `MaterialToolbar` с заголовком и меню из XML, фрагмент вставлен в `FragmentContainerView` |
+| Состояние загрузки | `view_loading_overlay` | overlay поверх всего экрана, indeterminate-спиннер заморожен |
+
+Семь готовых запросов лежат в [`sample/render-requests/`](sample/render-requests);
+`python3 sample/render.py` прогоняет их через этот MCP-сервер и складывает результаты в
+[`sample/renders/`](sample/renders).
+
+Экран целиком — тулбар Activity и master-detail фрагмент (`render_target`):
+
+![Activity с тулбаром и master-detail фрагментом](sample/renders/05-activity-toolbar-library/render.png)
+
+Тот же экран с loading overlay и с `locale: ru-RU` и `nightMode: true`:
+
+| Loading overlay | Русская локаль, ночная тема |
+| --- | --- |
+| ![Loading overlay](sample/renders/06-activity-toolbar-library-loading/render.png) | ![Русская локаль, ночная тема](sample/renders/07-activity-toolbar-library-ru-night/render.png) |
+
+Фрагмент с RecyclerView на экране размера телефона и одна строка списка:
+
+| `fragment_book_list` | `item_book`, выбрана | `item_book`, `fontScale: 1.3` |
+| --- | --- | --- |
+| ![Фрагмент с RecyclerView](sample/renders/03-fragment-book-list/render.png) | ![Выбранная строка](sample/renders/01-item-book/render.png) | ![Длинный заголовок при fontScale 1.3](sample/renders/02-item-book-long-title-font-1.3/render.png) |
+
+## Что даёт один рендер
+
+Рендер — это не только картинка. Каждый прогон оставляет четыре файла, и для каждого сценария демо
+они закоммичены в `sample/renders/<сценарий>/`. Ниже они показаны для
+[`02-item-book-long-title-font-1.3`](sample/renders/02-item-book-long-title-font-1.3).
+
+**1. `request.json` и `replay.json` — входные аргументы, для истории и воспроизведения.**
+`request.json` — нормализованный запрос, который выполнил worker. `replay.json` — рецепт повтора:
+MCP-инструмент, его аргументы, модуль, вариант и тестовая задача проекта.
+
+```json
+{
+  "format": "android-ui-renderer-mcp/replay/v1",
+  "tool": "render_layout",
+  "arguments": {
+    "layout": "item_book",
+    "widthDp": 400,
+    "densityDpi": 320,
+    "fontScale": 1.3,
+    "fixture": {
+      "@id/title": { "text": "Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems" },
+      "@id/statusBadge": { "text": "On loan", "backgroundDrawable": "@drawable/bg_badge_on_loan", "textColor": "#8A4B08" }
+    }
+  },
+  "project": { "root": "sample", "module": ":app", "variant": "debug", "testTask": ":app:testDebugUnitTest" }
+}
+```
+
+(Сокращено. Настоящий `replay.json` хранит абсолютный путь к проекту; в закоммиченных файлах демо он
+заменён на `sample`.)
+
+**2. `render.png` — сам рендер.** Нарисован с той же разложенной иерархии View, что и дерево ниже.
+
+![Длинный заголовок при fontScale 1.3](sample/renders/02-item-book-long-title-font-1.3/render.png)
+
+**3. `view-tree.json` — дерево компонентов.** Каждая View с классом, ID, состоянием, текстом,
+padding, margins и абсолютными bounds в пикселях; у TextView есть ещё `textLayout`. Здесь дерево
+показывает то, на что картинка только намекает: границы заголовка не изменились, но 81 символ заменён
+многоточием.
+
+```json
+{
+  "id": "title",
+  "className": "android.widget.TextView",
+  "text": "Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems",
+  "textLayout": { "textSizePx": 40.0, "maxLines": 1, "lineCount": 1, "ellipsisCount": 81, "truncated": true },
+  "bounds": { "left": 144, "top": 72, "right": 614, "bottom": 126 },
+  "margins": { "left": 24, "top": 0, "right": 16, "bottom": 0 }
+}
+```
+
+То же дерево доступно сразу после рендера через `get_view_tree(renderId)` и
+`inspect_view(renderId, viewId)`, без чтения файлов.
 
 ## Цикл геометрической проверки
 
