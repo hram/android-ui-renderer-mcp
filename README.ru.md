@@ -242,6 +242,10 @@ Activity + fragment. У каждого overlay собственная облас
 
 По умолчанию MCP использует `:app` и `debug`. Для проекта с product flavor передайте вариант в окружении MCP, например `ANDROID_UI_RENDERER_VARIANT=uiDebug`. Добавлять файлы в Android-проект не требуется: MCP создаёт временный probe в `.android-ui-renderer/`.
 
+Probe — это JUnit 4-тест. Только на время рендера MCP добавляет Robolectric и JUnit 4.13.2, если ни
+`testImplementation`, ни тестовая конфигурация варианта не объявляют `junit:junit`. Версию JUnit,
+которую проект уже объявил, MCP не меняет.
+
 Временный probe-test намеренно запускается при каждом render, поэтому PNG и View Tree всегда
 свежие. При этом Gradle переиспользует неизменившиеся результаты компиляции и обработки ресурсов.
 Перед решением о persistent worker посмотрите `timings` на целевом проекте.

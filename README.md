@@ -252,6 +252,10 @@ MCP uses `:app` and `debug` by default. For a project with product flavors, pass
 the MCP environment, for example `ANDROID_UI_RENDERER_VARIANT=uiDebug`. No file needs to be added
 to the Android project; MCP creates its temporary probe under `.android-ui-renderer/`.
 
+The probe is a JUnit 4 test. For the render run only, MCP adds Robolectric and — when neither
+`testImplementation` nor the variant's test configuration declares `junit:junit` — JUnit 4.13.2. A
+JUnit version the project already declares is left as is.
+
 The probe test is intentionally executed for every render so that a fresh PNG and View tree are
 always produced. Gradle still reuses unchanged compilation and resource outputs. Check `timings`
 on the target project before deciding whether a persistent renderer worker is necessary.

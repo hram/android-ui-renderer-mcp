@@ -33,7 +33,7 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("com.google.android.material:material:1.11.0")
 
-    // The renderer's temporary probe is a JUnit 4 test; like the default Android Studio template,
-    // the project provides JUnit itself.
+    // As in the default Android Studio template. The renderer's probe is a JUnit 4 test and adds JUnit
+    // itself only when the project does not declare it.
     testImplementation("junit:junit:4.13.2")
 }

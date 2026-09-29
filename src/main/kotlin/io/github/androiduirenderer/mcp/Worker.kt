@@ -180,6 +180,16 @@ private class SidecarWorker(private val config: RendererConfig, private val json
           p.dependencies.add('testImplementation', 'androidx.recyclerview:recyclerview:1.3.2')
           p.configurations.configureEach { resolutionStrategy.force('org.bouncycastle:bcprov-jdk18on:1.77') }
           p.tasks.withType(Test).configureEach { outputs.upToDateWhen { false } }
+          // The probe is a JUnit 4 test. Add JUnit only when the project does not declare it, so an
+          // existing JUnit version is never bumped by conflict resolution.
+          p.afterEvaluate {
+            def testConfigs = ['testImplementation', 'test${config.variant.replaceFirstChar { it.uppercase() }}Implementation']
+            def declared = testConfigs.any { name ->
+              def c = p.configurations.findByName(name)
+              c != null && c.dependencies.any { it.group == 'junit' && it.name == 'junit' }
+            }
+            if (!declared) p.dependencies.add('testImplementation', 'junit:junit:4.13.2')
+          }
         }}
     """.trimIndent()
     private fun probeSource(pkg: String, r: RenderRequest): String {

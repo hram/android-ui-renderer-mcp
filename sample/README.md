@@ -58,7 +58,8 @@ For `02`, the View tree reports the truncation that the picture only hints at:
 
 ## Notes
 
-- The renderer's temporary probe is a JUnit 4 test. Like the default Android Studio template, the app
-  declares `testImplementation("junit:junit:4.13.2")`; without it the probe does not compile.
+- The renderer's temporary probe is a JUnit 4 test. The app declares JUnit like the default Android
+  Studio template; a project without it works too, because the renderer then adds `junit:junit:4.13.2`
+  for the render run only.
 - `render_target` composes exactly one fragment layout into one container, so master-detail lives in a
   single fragment layout here.
