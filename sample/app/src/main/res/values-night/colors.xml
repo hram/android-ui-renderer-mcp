@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand">#233A55</color>
+    <color name="primary">#9CC3F0</color>
+    <color name="on_primary">#0B1A2B</color>
+    <color name="surface">#1A2230</color>
+    <color name="background">#111822</color>
+    <color name="text_primary">#E8EDF4</color>
+    <color name="text_secondary">#9AA7B8</color>
+    <color name="divider">#2A3444</color>
+    <color name="row_selected">#243650</color>
+    <color name="badge_available">#1D3B2A</color>
+    <color name="on_badge_available">#8FD8A8</color>
+    <color name="badge_on_loan">#3D2C16</color>
+    <color name="on_badge_on_loan">#F2BD7A</color>
+</resources>

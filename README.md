@@ -7,6 +7,10 @@ fixture, and the target device size; the MCP returns a screenshot and the View t
 
 The Android project does not receive a permanent Robolectric dependency or test source.
 
+To see every capability on an open project, use the [demo app](sample/README.md): a list row, a
+fragment with a RecyclerView, a master-detail layout and a whole activity with a toolbar, each with
+a ready render request and its PNG and View tree.
+
 ## Geometry feedback loop
 
 `render_layout` inflates, applies the fixture, measures, lays out, serializes the View tree, and

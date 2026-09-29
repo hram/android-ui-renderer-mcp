@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Shelf</string>
+    <string name="action_search">Search</string>
+    <string name="action_sort">Sort</string>
+    <string name="books_count">%1$d books</string>
+    <string name="empty_library">No books on this shelf yet</string>
+    <string name="status_available">Available</string>
+    <string name="status_on_loan">On loan</string>
+    <string name="action_borrow">Borrow</string>
+    <string name="action_reserve">Reserve</string>
+    <string name="detail_placeholder">Select a book to see the details</string>
+    <string name="loading">Loading the shelf…</string>
+    <string name="cover_description">Book cover</string>
+</resources>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Полка</string>
+    <string name="action_search">Поиск</string>
+    <string name="action_sort">Сортировка</string>
+    <string name="books_count">Книг: %1$d</string>
+    <string name="empty_library">На этой полке пока нет книг</string>
+    <string name="status_available">В наличии</string>
+    <string name="status_on_loan">Выдана</string>
+    <string name="action_borrow">Взять</string>
+    <string name="action_reserve">Забронировать</string>
+    <string name="detail_placeholder">Выберите книгу, чтобы увидеть подробности</string>
+    <string name="loading">Загружаем полку…</string>
+    <string name="cover_description">Обложка книги</string>
+</resources>
