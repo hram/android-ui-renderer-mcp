@@ -12,8 +12,8 @@
       "selectedId": 2,
       "title": "Shelf"
     },
-    "widthDp": 1280,
-    "heightDp": 800,
-    "densityDpi": 160
+    "widthPx": 1920,
+    "heightPx": 1200,
+    "densityDpi": 240
   }
 }
