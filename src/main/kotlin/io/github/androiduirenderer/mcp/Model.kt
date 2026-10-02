@@ -3,6 +3,7 @@ package io.github.androiduirenderer.mcp
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 
 @Serializable
 data class Bounds(
@@ -76,6 +77,17 @@ data class RenderRequest(
     /** Optional composed root used by render_target. */
     val target: RenderTarget? = null,
     val overlays: List<OverlayFixture> = emptyList(),
+    /** Optional direct Jetpack Compose invocation. XML fields remain untouched when this is absent. */
+    val compose: ComposeRender? = null,
+)
+
+/** A composable function and its explicit, named JSON arguments. */
+@Serializable
+data class ComposeRender(
+    val function: String,
+    val arguments: JsonObject,
+    /** Optional fully qualified @Composable wrapper, for example com.example.theme.AppTheme. */
+    val theme: String? = null,
 )
 
 @Serializable

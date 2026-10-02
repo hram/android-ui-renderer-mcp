@@ -2,49 +2,57 @@
 
 [Русская версия](README.ru.md)
 
-Local MCP for an agent developing Android XML interfaces. The agent passes a layout, a visual
-fixture, and the target device size; the MCP returns a screenshot and the View tree.
+Local MCP for agents developing Android interfaces with XML/View or Jetpack Compose. It renders a
+layout, target screen, or top-level composable into a screenshot and an inspectable UI tree.
 
 The Android project does not receive a permanent Robolectric dependency or test source.
 
-## Demo app
+## Demo projects
 
-[`sample/`](sample/README.md) is a small open Android app (XML/View, Material 3, "Shelf" — a book
-library) built to show every renderer capability on a project anyone can clone. It is a real app with
-an activity, fragments and an adapter over local sample data, but the renderer never runs that code:
-each render request supplies its data explicitly.
+Two equivalent open Android projects demonstrate the renderer on the same Material 3 "Shelf" book
+library. They are real applications, but every render receives its data explicitly rather than
+running production navigation or data loading.
 
-| Screen | Layout | What it exercises |
+| | XML / View | Jetpack Compose |
 | --- | --- | --- |
-| List row | `item_book` | ConstraintLayout, drawable cover, `maxLines="1"` title, status badge, selected background |
-| Fragment with a list | `fragment_book_list` | `RecyclerView` filled from `recyclerViews` rows |
-| Master-detail | `fragment_library` | list on the left, `<include>`d details on the right, one selected row |
-| Whole screen | `activity_main` + fragment | `MaterialToolbar` with title and menu from XML, fragment inserted into `FragmentContainerView` |
-| Loading state | `view_loading_overlay` | overlay above the whole screen, indeterminate spinner frozen |
+| Project | [`sample/`](sample/README.md) | [`sample-compose/`](sample-compose/README.md) |
+| Render tool | `render_layout`, `render_target` | `render_compose` |
+| UI entry point | layout, fragment, or activity target | top-level `@Composable` FQCN |
+| Data | `fixture`, `recyclerViews`, overlays | named JSON arguments |
+| Run every example | `python3 sample/render.py` | `python3 sample-compose/render.py` |
 
-Seven ready requests live in [`sample/render-requests/`](sample/render-requests); `python3 sample/render.py`
-runs them through this MCP server and stores the results in [`sample/renders/`](sample/renders).
+Both projects include the same seven scenarios:
 
-The whole screen — activity toolbar plus master-detail fragment (`render_target`):
+| Scenario | XML / View | Jetpack Compose |
+| --- | --- | --- |
+| Selected book row | `item_book` | `ComposeBookItem` |
+| Long title, `fontScale: 1.3` | layout fixture | `ComposeBookItem` arguments |
+| Book list | fragment + `RecyclerView` | `ComposeBookList` |
+| Master-detail | fragment + `<include>` | `ComposeLibrary` |
+| Complete screen | activity + toolbar + fragment | `ComposeShelfScreen` |
+| Loading state | overlay layout | `ComposeShelfScreen(loading = true)` |
+| Russian dark state | resource qualifiers | `ComposeShelfScreen(language = "ru", dark = true)` |
 
-![Activity with toolbar and master-detail fragment](sample/renders/05-activity-toolbar-library/render.png)
+Each runner stores a screenshot, tree, normalized request, and replay recipe in its own `renders/`
+directory. Compose requests use a fully qualified composable function name plus named JSON arguments;
+the project-level Compose theme is discovered and applied by the renderer.
 
-The same screen with the loading overlay, and again with `locale: ru-RU` and `nightMode: true`:
+### Whole screen
 
-| Loading overlay | Russian locale, night mode |
+| XML / View | Jetpack Compose |
 | --- | --- |
-| ![Loading overlay](sample/renders/06-activity-toolbar-library-loading/render.png) | ![Russian locale, night mode](sample/renders/07-activity-toolbar-library-ru-night/render.png) |
+| ![XML Shelf](sample/renders/05-activity-toolbar-library/render.png) | ![Compose Shelf](sample-compose/renders/05-activity-toolbar-library/render.png) |
 
-A fragment with a RecyclerView on a phone-sized canvas, and a single row:
+### Russian dark state
 
-| `fragment_book_list` | `item_book`, selected | `item_book`, `fontScale: 1.3` |
-| --- | --- | --- |
-| ![Fragment with RecyclerView](sample/renders/03-fragment-book-list/render.png) | ![Selected row](sample/renders/01-item-book/render.png) | ![Long title at font scale 1.3](sample/renders/02-item-book-long-title-font-1.3/render.png) |
+| XML / View | Jetpack Compose |
+| --- | --- |
+| ![XML Russian dark screen](sample/renders/07-activity-toolbar-library-ru-night/render.png) | ![Compose Russian dark screen](sample-compose/renders/07-activity-toolbar-library-ru-night/render.png) |
 
 ## What a render produces
 
-A render is not only a picture. Every run leaves four files, and all of them are committed for each
-demo scenario in `sample/renders/<scenario>/`. Below they are shown for
+A render is not only a picture. Every run leaves four files, and both demo projects commit them for
+each scenario in their `renders/<scenario>/` directory. The XML/View example below is shown for
 [`02-item-book-long-title-font-1.3`](sample/renders/02-item-book-long-title-font-1.3).
 
 **1. `request.json` and `replay.json` — the input, for history and replay.** `request.json` is the
@@ -233,6 +241,45 @@ Fixture keys are View IDs. The available overrides are text, hint, content descr
 visibility, enabled/selected/checked state, text and background colors, a background drawable,
 text size, strike-through, and an image from an absolute local path, an app drawable resource, or a solid color. Local images
 must be regular files no larger than 20 MiB; use `@drawable/name` (or `name`) for an app drawable.
+
+## Render a Jetpack Compose function
+
+`render_compose` renders a top-level `@Composable` directly. Pass the fully qualified function
+name and named visual arguments. The renderer reads the Kotlin signature, generates a typed Kotlin
+call in its temporary probe, creates omitted callback arguments as no-ops, and draws the resulting
+`ComposeView`. The project is not modified.
+
+```json
+{
+  "function": "com.hoff.appstore.screens.reports.ReportItem",
+  "arguments": {
+    "role": "ADMIN",
+    "model": {
+      "applicationId": "ru.hoff.tablet.dev",
+      "versionCode": 123456789,
+      "versionName": "1.1.1",
+      "message": "Automatic report",
+      "url": "",
+      "businessUnitId": "730",
+      "personnelNumber": "7101754",
+      "dateTime": "2025-02-13 10:34",
+      "fileName": "report.txt",
+      "issueUrl": null,
+      "comment": "",
+      "imageUrl": null,
+      "isActive": true,
+      "checked": true
+    }
+  },
+  "widthPx": 1280,
+  "heightPx": 800,
+  "densityDpi": 240
+}
+```
+
+Arguments map to Kotlin parameter names. Primitives, nullable values, enums, data classes,
+mutable properties on data-class instances, and `List`/`Set` collections are generated as typed
+Kotlin values. Compose output uses its accessibility semantics as the returned component tree.
 
 ## Render RecyclerView rows
 

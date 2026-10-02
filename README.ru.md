@@ -25,6 +25,15 @@
 `python3 sample/render.py` прогоняет их через этот MCP-сервер и складывает результаты в
 [`sample/renders/`](sample/renders).
 
+## Compose-демо
+
+[`sample-compose/`](sample-compose/README.md) — параллельная Jetpack Compose-версия того же
+приложения Shelf. В ней повторены те же семь сценариев: строка книги, длинный заголовок при
+увеличенном шрифте, список, master-detail, экран с тулбаром, загрузка и русская тёмная тема.
+Это прямые вызовы `render_compose`: запрос передаёт FQCN composable-функции и именованные JSON-аргументы.
+После `./gradlew installDist` все сценарии запускаются командой `python3 sample-compose/render.py`,
+а результаты пишутся в [`sample-compose/renders/`](sample-compose/renders).
+
 Экран целиком — тулбар Activity и master-detail фрагмент (`render_target`):
 
 ![Activity с тулбаром и master-detail фрагментом](sample/renders/05-activity-toolbar-library/render.png)
@@ -231,6 +240,45 @@ cd android-ui-renderer-mcp
 ```
 
 Ключи fixture — ID View. Доступны переопределения текста, hint, content description, видимости, состояний enabled/selected/checked, цвета текста и фона, фонового drawable, размера текста, зачёркивания, а также изображения из абсолютного локального пути, drawable-ресурса приложения или сплошного цвета. Локальный файл должен существовать и быть не больше 20 МиБ; для drawable используйте `@drawable/name` или `name`.
+
+## Рендер Jetpack Compose-функции
+
+`render_compose` напрямую рендерит top-level `@Composable`. Передайте полное имя функции и
+именованные визуальные аргументы. Рендерер читает Kotlin-сигнатуру, генерирует типизированный
+Kotlin-вызов во временном probe, создаёт no-op callbacks для не переданных callback-параметров и
+рисует получившийся `ComposeView`. Файлы проекта не меняются.
+
+```json
+{
+  "function": "com.hoff.appstore.screens.reports.ReportItem",
+  "arguments": {
+    "role": "ADMIN",
+    "model": {
+      "applicationId": "ru.hoff.tablet.dev",
+      "versionCode": 123456789,
+      "versionName": "1.1.1",
+      "message": "Автоматический отчёт",
+      "url": "",
+      "businessUnitId": "730",
+      "personnelNumber": "7101754",
+      "dateTime": "2025-02-13 10:34",
+      "fileName": "report.txt",
+      "issueUrl": null,
+      "comment": "",
+      "imageUrl": null,
+      "isActive": true,
+      "checked": true
+    }
+  },
+  "widthPx": 1280,
+  "heightPx": 800,
+  "densityDpi": 240
+}
+```
+
+Аргументы соответствуют именам Kotlin-параметров. Примитивы, nullable-значения, enum, data class,
+изменяемые свойства экземпляров data class и коллекции `List`/`Set` превращаются в типизированные
+Kotlin-значения. Для Compose в ответ возвращается дерево accessibility semantics.
 
 ## Рендер строк RecyclerView
 

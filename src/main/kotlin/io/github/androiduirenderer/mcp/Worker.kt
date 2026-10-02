@@ -47,14 +47,18 @@ private class SidecarWorker(private val config: RendererConfig, private val json
         Files.createDirectories(sourceRoot)
         val (requestPath, replayPath) = persistReplay(run, request)
         val packageName = androidPackage()
-        val source = sourceRoot.resolve(packageName.replace('.', '/')).resolve("AndroidUiRendererProbe.java")
+        val compose = request.compose
+        val source = sourceRoot.resolve(packageName.replace('.', '/')).resolve(
+            if (compose == null) "AndroidUiRendererProbe.java" else "AndroidUiComposeRendererProbe.kt",
+        )
         Files.createDirectories(source.parent)
-        Files.writeString(source, probeSource(packageName, request))
+        Files.writeString(source, if (compose == null) probeSource(packageName, request) else composeProbeSource(packageName, request, ComposeCallGenerator(config.projectRoot).generate(compose)))
         val init = run.resolve("init.gradle")
         Files.writeString(init, initScript())
         val gradlew = config.projectRoot.resolve(if (System.getProperty("os.name").startsWith("Windows")) "gradlew.bat" else "gradlew")
         if (!gradlew.exists()) throw RendererException("PROJECT_NOT_FOUND", "Gradle wrapper not found at $gradlew")
-        val command = listOf(gradlew.toAbsolutePath().toString(), config.allowedTasks.single(), "--tests", "$packageName.renderer.AndroidUiRendererProbe", "--init-script", init.toString(), "--console=plain")
+        val probeClass = if (compose == null) "AndroidUiRendererProbe" else "AndroidUiComposeRendererProbe"
+        val command = listOf(gradlew.toAbsolutePath().toString(), config.allowedTasks.single(), "--tests", "$packageName.renderer.$probeClass", "--init-script", init.toString(), "--console=plain")
         var log = ""
         var exitCode = -1
         val gradleMs = measureTimeMillis {
@@ -102,10 +106,23 @@ private class SidecarWorker(private val config: RendererConfig, private val json
         val requestPath = run.resolve("request.json")
         Files.writeString(requestPath, json.encodeToString(RenderRequest.serializer(), request))
         val replayPath = run.resolve("replay.json")
+        val encodedRequest = json.encodeToJsonElement(RenderRequest.serializer(), request).jsonObject
+        val replayArguments = request.compose?.let { compose ->
+            buildJsonObject {
+                put("function", compose.function)
+                put("arguments", compose.arguments)
+                compose.theme?.let { put("theme", it) }
+                request.widthDp?.let { put("widthDp", it) }; request.heightDp?.let { put("heightDp", it) }
+                request.widthPx?.let { put("widthPx", it) }; request.heightPx?.let { put("heightPx", it) }
+                request.densityDpi?.let { put("densityDpi", it) }; request.orientation?.let { put("orientation", it) }
+                request.locale?.let { put("locale", it) }; request.nightMode?.let { put("nightMode", it) }
+                request.fontScale?.let { put("fontScale", it) }; request.background?.let { put("background", it) }
+            }
+        } ?: encodedRequest
         val replay = buildJsonObject {
             put("format", "android-ui-renderer-mcp/replay/v1")
-            put("tool", if (request.target == null) "render_layout" else "render_target")
-            put("arguments", json.encodeToJsonElement(RenderRequest.serializer(), request))
+            put("tool", if (request.compose != null) "render_compose" else if (request.target == null) "render_layout" else "render_target")
+            put("arguments", replayArguments)
             put("project", buildJsonObject {
                 put("root", config.projectRoot.toString())
                 put("module", config.module)
@@ -176,6 +193,7 @@ private class SidecarWorker(private val config: RendererConfig, private val json
         gradle.beforeProject { p -> if (p.path == '${config.module}') p.plugins.withId('com.android.application') {
           p.android.testOptions.unitTests.includeAndroidResources = true
           p.android.sourceSets.getByName('test').java.srcDir(src)
+          p.android.sourceSets.getByName('test').kotlin.srcDir(src)
           p.dependencies.add('testImplementation', 'org.robolectric:robolectric:4.14.1')
           p.dependencies.add('testImplementation', 'androidx.recyclerview:recyclerview:1.3.2')
           p.configurations.configureEach { resolutionStrategy.force('org.bouncycastle:bcprov-jdk18on:1.77') }
@@ -243,6 +261,106 @@ import org.junit.*; import org.junit.runner.*; import org.robolectric.*; import 
  static class StaticSpinnerDrawable extends Drawable{Paint p=new Paint(1);public void draw(Canvas c){Rect b=getBounds();float s=Math.max(2f,Math.min(b.width(),b.height())/10f);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(s);p.setStrokeCap(Paint.Cap.ROUND);p.setColor(Color.rgb(77,190,225));float q=s/2f;c.drawArc(new RectF(b.left+q,b.top+q,b.right-q,b.bottom-q),-90,270,false,p);}public void setAlpha(int a){p.setAlpha(a);}public void setColorFilter(ColorFilter f){p.setColorFilter(f);}public int getOpacity(){return PixelFormat.TRANSLUCENT;}}
  static String id(View v){if(v.getId()==View.NO_ID)return null;try{return v.getResources().getResourceEntryName(v.getId());}catch(Exception e){return null;}} static String resource(View v){if(v.getId()==View.NO_ID)return null;try{return v.getResources().getResourceName(v.getId());}catch(Exception e){return null;}} static String visibility(View v){return v.getVisibility()==View.VISIBLE?"VISIBLE":v.getVisibility()==View.INVISIBLE?"INVISIBLE":"GONE";} static void field(StringBuilder x,String n,String v){x.append('\"').append(n).append("\":");str(x,v);} static void box(StringBuilder x,int l,int t,int r,int b){x.append("{\"left\":").append(l).append(",\"top\":").append(t).append(",\"right\":").append(r).append(",\"bottom\":").append(b).append('}');} static void margins(StringBuilder x,View v){ViewGroup.LayoutParams p=v.getLayoutParams();if(!(p instanceof ViewGroup.MarginLayoutParams)){x.append("null");return;}ViewGroup.MarginLayoutParams m=(ViewGroup.MarginLayoutParams)p;box(x,m.leftMargin,m.topMargin,m.rightMargin,m.bottomMargin);} static void str(StringBuilder x,String s){if(s==null){x.append("null");return;}x.append('\"');for(int i=0;i<s.length();i++){char c=s.charAt(i);if(c=='\\'||c=='\"')x.append('\\');if(c=='\n')x.append("\\n");else if(c=='\r')x.append("\\r");else if(c=='\t')x.append("\\t");else if(c<32)x.append(String.format("\\u%04x",(int)c));else x.append(c);}x.append('\"');}
 } """
+    }
+
+    private fun composeProbeSource(pkg: String, r: RenderRequest, call: GeneratedComposeCall): String {
+        val density = r.densityDpi ?: 160
+        val width = r.widthPx ?: ((r.widthDp ?: 1080) * density / 160f).toInt()
+        val height = r.heightPx ?: r.heightDp?.let { (it * density / 160f).toInt() } ?: 1920
+        val configuration = buildString {
+            r.locale?.let { append("it.setLocale(java.util.Locale.forLanguageTag(\"$it\"));") }
+            r.nightMode?.let { append("it.uiMode=(it.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or ${if (it) "Configuration.UI_MODE_NIGHT_YES" else "Configuration.UI_MODE_NIGHT_NO"};") }
+            r.orientation?.let { append("it.orientation=${if (it == "landscape") "Configuration.ORIENTATION_LANDSCAPE" else "Configuration.ORIENTATION_PORTRAIT"};") }
+            r.fontScale?.let { append("it.fontScale=${it}f;") }
+        }
+        val scaledDensity = density / 160f * (r.fontScale ?: 1f)
+        val themeWrapper = call.theme?.let { "$it {" } ?: "MaterialTheme {"
+        return """package $pkg.renderer
+import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Rect
+import android.util.DisplayMetrics
+import android.view.View
+import androidx.activity.ComponentActivity
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.platform.ComposeView
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.Robolectric
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
+import java.io.FileOutputStream
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class AndroidUiComposeRendererProbe {
+  @Test fun render() {
+    val started = System.nanoTime()
+    val app = RuntimeEnvironment.getApplication()
+    val resources = app.resources
+    val metrics = DisplayMetrics().also { it.setTo(resources.displayMetrics); it.densityDpi = $density; it.density = ${density / 160f}f; it.scaledDensity = ${scaledDensity}f }
+    val c = Configuration(resources.configuration).also { it.densityDpi = $density; $configuration }
+    resources.updateConfiguration(c, metrics)
+    val controller = Robolectric.buildActivity(ComponentActivity::class.java)
+    val activity = controller.setup().get()
+    val root = ComposeView(activity)
+    activity.setContentView(root)
+    root.setContent {
+      $themeWrapper
+        ${call.preamble}
+        ${call.invocation}
+      }
+    }
+    root.measure(View.MeasureSpec.makeMeasureSpec($width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec($height, View.MeasureSpec.EXACTLY))
+    root.layout(0, 0, $width, $height)
+    val bitmap = Bitmap.createBitmap($width, $height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    canvas.drawColor(Color.parseColor("${r.background ?: "#FFFFFF"}"))
+    root.draw(canvas)
+    val output = File(System.getenv("AUR_OUTPUT")); output.parentFile.mkdirs(); FileOutputStream(output).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    val tree = File(System.getenv("AUR_TREE")); tree.parentFile.mkdirs(); writeSemantics(root, tree, $width, $height)
+    val timings = File(System.getenv("AUR_TIMINGS")); timings.parentFile.mkdirs(); timings.writeText(JSONObject().put("renderMs", (System.nanoTime() - started) / 1_000_000L).toString())
+    controller.pause().stop().destroy()
+  }
+  private fun writeSemantics(root: ComposeView, out: File, width: Int, height: Int) {
+    val host = if (root.childCount > 0) root.getChildAt(0) else null
+    val owner = host?.let { invoke(it, "getSemanticsOwner") }
+    val semanticsRoot = owner?.let { invoke(it, "getUnmergedRootSemanticsNode") }
+    out.writeText(if (semanticsRoot == null) fallbackTree(width, height) else node(semanticsRoot))
+  }
+  private fun node(node: Any): String {
+    val config = invoke(node, "getConfig") ?: error("Compose SemanticsNode has no configuration")
+    val box = invoke(node, "getBoundsInRoot") ?: error("Compose SemanticsNode has no bounds")
+    val text = property(config, "Text")?.let { value -> (value as? Iterable<*>)?.joinToString("\\n") { invoke(it ?: return@joinToString "", "getText")?.toString() ?: it.toString() } }
+    val contentDescription = property(config, "ContentDescription")?.let { value -> (value as? Iterable<*>)?.joinToString("\\n") { it.toString() } }
+    val checked = property(config, "ToggleableState")?.toString()?.let { it == "On" }
+    val children = JSONArray().also { result ->
+      (invoke(node, "getChildren") as? Iterable<*>)?.forEach { child -> if (child != null) result.put(JSONObject(node(child))) }
+    }
+    return JSONObject()
+      .put("id", "semantics-" + invoke(node, "getId")).put("resourceName", null).put("className", "androidx.compose.ui.semantics.SemanticsNode")
+      .put("visibility", "VISIBLE").put("enabled", property(config, "Disabled") == null).put("clickable", config.toString().contains("OnClick")).put("selected", property(config, "Selected") ?: false)
+      .put("checked", checked).put("text", text).put("contentDescription", contentDescription)
+      .put("bounds", bounds(Rect((invoke(box, "getLeft") as Number).toInt(), (invoke(box, "getTop") as Number).toInt(), (invoke(box, "getRight") as Number).toInt(), (invoke(box, "getBottom") as Number).toInt()))).put("children", children).toString()
+  }
+  private fun property(config: Any, name: String): Any? {
+    val properties = Class.forName("androidx.compose.ui.semantics.SemanticsProperties").getField("INSTANCE").get(null)
+    val key = invoke(properties, "get" + name) ?: return null
+    return if (invoke(config, "contains", key) == true) invoke(config, "get", key) else null
+  }
+  private fun invoke(receiver: Any, name: String, vararg arguments: Any?): Any? = receiver.javaClass.methods.firstOrNull { it.name == name && it.parameterCount == arguments.size }?.invoke(receiver, *arguments)
+  private fun fallbackTree(width: Int, height: Int) = JSONObject().put("id", null).put("resourceName", null).put("className", "androidx.compose.ui.platform.ComposeView").put("bounds", bounds(Rect(0, 0, width, height))).put("children", JSONArray()).toString()
+  private fun bounds(box: Rect) = JSONObject().put("left", box.left).put("top", box.top).put("right", box.right).put("bottom", box.bottom)
+}
+"""
     }
     private fun fixtureJava(root: String, id: String, f: ViewFixture, pkg: String): String {
         fun q(s: String) = s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")

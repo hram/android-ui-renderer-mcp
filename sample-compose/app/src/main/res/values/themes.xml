@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.RendererComposeSample" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#2F5D8C</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#F3F5F8</item>
+    </style>
+</resources>

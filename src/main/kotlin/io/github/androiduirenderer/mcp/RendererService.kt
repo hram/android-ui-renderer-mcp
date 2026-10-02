@@ -82,6 +82,14 @@ class RendererService(private val config: RendererConfig, private val json: kotl
 object RenderRequestValidator {
     fun validate(request: RenderRequest) {
         if (!request.layout.matches(Regex("[A-Za-z0-9_]+"))) throw RendererException("LAYOUT_NOT_FOUND", "Invalid layout resource name")
+        request.compose?.let { compose ->
+            if (!compose.function.matches(Regex("[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+"))) {
+                throw RendererException("INVALID_REQUEST", "function must be a fully qualified top-level composable name")
+            }
+            if (request.target != null || request.fixture.isNotEmpty() || request.recyclerViews.isNotEmpty() || request.overlays.isNotEmpty()) {
+                throw RendererException("INVALID_REQUEST", "render_compose cannot be combined with XML target, fixture, recyclerViews, or overlays")
+            }
+        }
         if (request.widthDp != null && request.widthDp !in 1..20_000) throw RendererException("INVALID_REQUEST", "widthDp is out of range")
         if (request.heightDp != null && request.heightDp !in 1..20_000) throw RendererException("INVALID_REQUEST", "heightDp is out of range")
         if (request.widthPx != null && request.widthPx !in 1..50_000) throw RendererException("INVALID_REQUEST", "widthPx is out of range")

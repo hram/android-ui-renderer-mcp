@@ -64,24 +64,26 @@ class StdioMcpServer(
         return when (name) {
             "render_layout" -> render(args)
             "render_target" -> render(args, target(args))
+            "render_compose" -> renderCompose(args)
             "get_view_tree" -> textResult(json.encodeToString(ViewNode.serializer(), service.tree(requiredString(args, "renderId"))))
             "inspect_view" -> textResult(json.encodeToString(ViewNode.serializer(), service.inspect(requiredString(args, "renderId"), requiredString(args, "viewId"))))
             else -> throw RendererException("TOOL_NOT_FOUND", "Unknown tool: $name")
         }
     }
 
-    private fun render(args: JsonObject, target: RenderTarget? = null): JsonObject {
+    private fun render(args: JsonObject, target: RenderTarget? = null, compose: ComposeRender? = null): JsonObject {
         val request = RenderRequest(
-            layout = target?.fragmentLayout ?: requiredString(args, "layout"),
+            layout = target?.fragmentLayout ?: if (compose == null) requiredString(args, "layout") else "compose_root",
             widthDp = args.int("widthDp"), heightDp = args.int("heightDp"),
             widthPx = args.int("widthPx"), heightPx = args.int("heightPx"), densityDpi = args.int("densityDpi"),
-            orientation = args.string("orientation"), theme = args.string("theme"), locale = args.string("locale"),
+            orientation = args.string("orientation"), theme = if (compose == null) args.string("theme") else null, locale = args.string("locale"),
             nightMode = args.bool("nightMode"), fontScale = args.float("fontScale"),
             background = args.string("background") ?: "#FFFFFF",
             fixture = fixture(args),
             recyclerViews = recyclerViews(args),
             target = target,
             overlays = overlays(args),
+            compose = compose,
         )
         val (session, freshness) = service.render(request)
         val result = buildJsonObject {
@@ -106,6 +108,13 @@ class StdioMcpServer(
             }
         }
         return textResult(json.encodeToString(JsonObject.serializer(), result))
+    }
+
+    private fun renderCompose(args: JsonObject): JsonObject {
+        val function = requiredString(args, "function")
+        val arguments = args["arguments"] as? JsonObject
+            ?: throw RendererException("INVALID_REQUEST", "arguments must be an object")
+        return render(args, compose = ComposeRender(function, arguments, args.string("theme")))
     }
 
     private fun toolDefinitions() = buildJsonArray {
@@ -140,6 +149,17 @@ class StdioMcpServer(
                 put("fixture", fixtureSchema()); put("recyclerViews", recyclerViewsSchema())
                 put("overlays", overlaysSchema())
             }; putJsonArray("required") { add(JsonPrimitive("target")) }
+        }))
+        add(tool("render_compose", "Render a top-level Jetpack Compose function. Pass its fully qualified name and an object of explicit named arguments; the renderer generates a typed Kotlin call and no-op callbacks for omitted callback parameters.", buildJsonObject {
+            put("type", "object"); putJsonObject("properties") {
+                putJsonObject("function") { put("type", "string"); put("description", "Fully qualified top-level @Composable function name") }
+                putJsonObject("arguments") { put("type", "object"); put("description", "Named visual arguments for the composable. Enums use their name; data classes and collections use JSON objects and arrays.") }
+                putJsonObject("theme") { put("type", "string"); put("description", "Optional fully qualified project @Composable theme wrapper; AppTheme is auto-detected when omitted.") }
+                putJsonObject("widthDp") { put("type", "integer") }; putJsonObject("heightDp") { put("type", "integer") }
+                putJsonObject("widthPx") { put("type", "integer") }; putJsonObject("heightPx") { put("type", "integer") }
+                putJsonObject("densityDpi") { put("type", "integer") }; putJsonObject("orientation") { put("type", "string"); putJsonArray("enum") { add(JsonPrimitive("portrait")); add(JsonPrimitive("landscape")) } }
+                putJsonObject("locale") { put("type", "string") }; putJsonObject("nightMode") { put("type", "boolean") }; putJsonObject("fontScale") { put("type", "number") }; putJsonObject("background") { put("type", "string") }
+            }; putJsonArray("required") { add(JsonPrimitive("function")); add(JsonPrimitive("arguments")) }
         }))
         add(tool("get_view_tree", "Return the machine-readable View hierarchy for a prior render.", idSchema("renderId")))
         add(tool("inspect_view", "Return bounds, visibility, text, padding and margins for one View. TextViews also carry textLayout: textSizePx, maxLines, lineCount, ellipsisCount and truncated, so text cut by ellipsis or maxLines is detectable even when bounds do not overlap.", buildJsonObject {

@@ -1,0 +1,13 @@
+{
+  "tool": "render_compose",
+  "arguments": {
+    "function": "io.github.androiduirenderer.composesample.ComposeBookItem",
+    "arguments": {
+      "book": {"id": 1, "title": "The Pragmatic Programmer", "author": "Andrew Hunt, David Thomas", "year": 1999, "pages": 352, "onLoan": false, "tone": "BLUE", "description": "A practical guide to building software with care, curiosity and effective habits."},
+      "selected": true
+    },
+    "widthDp": 400,
+    "heightDp": 112,
+    "densityDpi": 160
+  }
+}
